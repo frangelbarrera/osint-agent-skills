@@ -1,0 +1,73 @@
+﻿# OSINT Agent Skills â€” .gitignore
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node (MCP server)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+package.json
+
+# Python (CLI tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# API keys / secrets â€” never commit these
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
+api-keys.yaml
+api-keys.json
+credentials.json
+secrets.json
+
+# Config files that may contain keys
+config.yaml
+config.yml
+*.local.yaml
+*.local.yml
+
+# Investigation outputs (if users run investigations inside the repo)
+output/
+reports/output/
+evidence/output/
+*.log
+
+# OSINT tool caches
+.sherlock/
+.maigret/
+.spiderfoot/
+.amass/
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+*.pid

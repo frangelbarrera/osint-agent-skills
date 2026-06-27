@@ -1,0 +1,238 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OSINT Agent Skills Investigation Graph",
+  "description": "Machine-readable graph schema for OSINT investigation data. Compatible with Neo4j import (via LOAD CSV), D3.js force-directed graphs, and custom analysis tools.",
+  "type": "object",
+  "required": ["metadata", "nodes", "edges"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["subject", "date", "analyst", "tool_version"],
+      "properties": {
+        "subject": { "type": "string", "description": "Investigation subject" },
+        "date": { "type": "string", "format": "date", "description": "ISO 8601 date of graph generation" },
+        "analyst": { "type": "string", "description": "Analyst or agent name" },
+        "tool_version": { "type": "string", "description": "OSINT Agent Skills version" },
+        "jurisdiction": { "type": "string", "description": "Legal jurisdiction (e.g., US, EU, UK)" },
+        "confidence_summary": {
+          "type": "object",
+          "properties": {
+            "confirmed": { "type": "integer" },
+            "probable": { "type": "integer" },
+            "unverified": { "type": "integer" },
+            "inferred": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "description": "All entities discovered during the investigation",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "label", "confidence"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique node identifier (e.g., 'person_1', 'domain_1')"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "person",
+              "domain",
+              "ip",
+              "email",
+              "username",
+              "phone",
+              "crypto_wallet",
+              "organization",
+              "asn",
+              "document",
+              "location",
+              "certificate",
+              "breach",
+              "social_profile",
+              "url",
+              "hash",
+              "device",
+              "network"
+            ],
+            "description": "Entity type"
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable label (actual value: domain name, IP, email, etc.)"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["Confirmed", "Probable", "Unverified", "Inferred", "Speculative"],
+            "description": "Confidence level per anti-hallucination rules"
+          },
+          "value": {
+            "type": "string",
+            "description": "The actual observed value (normalized)"
+          },
+          "source": {
+            "type": "string",
+            "description": "Tool or source where this entity was found"
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Direct URL to the source (if applicable)"
+          },
+          "first_seen": {
+            "type": "string",
+            "description": "ISO 8601 timestamp when first observed by the agent"
+          },
+          "last_seen": {
+            "type": "string",
+            "description": "ISO 8601 timestamp when last verified"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Additional entity-specific attributes",
+            "properties": {
+              "registrar": { "type": "string" },
+              "registration_date": { "type": "string" },
+              "expiry_date": { "type": "string" },
+              "asn": { "type": "string" },
+              "country": { "type": "string" },
+              "city": { "type": "string" },
+              "lat": { "type": "number" },
+              "lon": { "type": "number" },
+              "platform": { "type": "string" },
+              "follower_count": { "type": "integer" },
+              "account_created": { "type": "string" },
+              "ports": { "type": "array", "items": { "type": "integer" } },
+              "technologies": { "type": "array", "items": { "type": "string" } },
+              "breach_name": { "type": "string" },
+              "breach_date": { "type": "string" },
+              "data_classes": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Relationships between entities",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "relationship", "confidence"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Source node ID"
+          },
+          "target": {
+            "type": "string",
+            "description": "Target node ID"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "resolves_to",
+              "registered_by",
+              "found_in_breach",
+              "same_identity",
+              "communicates_with",
+              "hosts",
+              "uses_email",
+              "uses_username",
+              "owns_wallet",
+              "employed_at",
+              "located_in",
+              "signed_cert",
+              "links_to",
+              "phoned_from",
+              "related_to",
+              "member_of",
+              "manages",
+              "owns",
+              "uses_phone",
+              "found_at",
+              "references",
+              "downloaded_from",
+              "shared_infrastructure"
+            ],
+            "description": "Type of relationship"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["Confirmed", "Probable", "Unverified", "Inferred", "Speculative"]
+          },
+          "source_tool": {
+            "type": "string",
+            "description": "Tool that established this relationship"
+          },
+          "evidence_url": {
+            "type": "string",
+            "description": "URL to the evidence (if web-based)"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "ISO 8601 timestamp when relationship was observed"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional context about this relationship"
+          }
+        }
+      }
+    }
+  },
+  "example": {
+    "metadata": {
+      "subject": "example.com infrastructure investigation",
+      "date": "2026-06-27",
+      "analyst": "OSINT Agent Skills",
+      "tool_version": "1.0.0",
+      "jurisdiction": "US",
+      "confidence_summary": {
+        "confirmed": 3,
+        "probable": 2,
+        "unverified": 1,
+        "inferred": 0
+      }
+    },
+    "nodes": [
+      {
+        "id": "domain_1",
+        "type": "domain",
+        "label": "example.com",
+        "confidence": "Confirmed",
+        "value": "example.com",
+        "source": "user-provided",
+        "first_seen": "2026-06-27T14:00:00Z",
+        "attributes": {
+          "registrar": "GoDaddy",
+          "registration_date": "1995-08-14"
+        }
+      },
+      {
+        "id": "ip_1",
+        "type": "ip",
+        "label": "93.184.216.34",
+        "confidence": "Confirmed",
+        "value": "93.184.216.34",
+        "source": "Google DoH",
+        "first_seen": "2026-06-27T14:01:00Z",
+        "attributes": {
+          "asn": "AS15169",
+          "country": "US"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "domain_1",
+        "target": "ip_1",
+        "relationship": "resolves_to",
+        "confidence": "Confirmed",
+        "source_tool": "Google DoH",
+        "timestamp": "2026-06-27T14:01:00Z"
+      }
+    ]
+  }
+}

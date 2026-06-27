@@ -1,0 +1,541 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schemas/mcp-server.schema.json",
+  "name": "osint-agent-skills-tools",
+  "version": "1.0.0",
+  "description": "MCP-format tool catalog for OSINT Agent Skills. These tools can be loaded directly into Claude Code, Cursor, or any MCP-compatible agent. Each tool is defined in the Model Context Protocol tool schema with input_schema for structured invocation.",
+  "tools": [
+    {
+      "name": "dns_lookup",
+      "description": "Resolve DNS records for a domain using Google's DoH resolver. Returns A, AAAA, MX, NS, TXT, CNAME, SOA, PTR, CAA, or SRV records as structured JSON. Use this as the default DNS lookup tool — it requires no API key.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Target domain (e.g., example.com). Lowercase, no trailing dot."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA", "PTR", "CAA", "SRV"],
+            "default": "A",
+            "description": "DNS record type to query."
+          }
+        },
+        "required": ["domain"]
+      },
+      "annotations": {
+        "endpoint": "https://dns.google/resolve?name={domain}&type={type}",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "high",
+        "tags": ["dns", "infrastructure", "recon"]
+      }
+    },
+    {
+      "name": "rdap_lookup_domain",
+      "description": "Look up structured registration data for a domain via RDAP. Returns registrar, registration date, expiry, name servers, and abuse contacts as JSON.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Target domain (e.g., example.com)."
+          }
+        },
+        "required": ["domain"]
+      },
+      "annotations": {
+        "endpoint": "https://rdap.org/domain/{domain}",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["whois", "registration", "domain"]
+      }
+    },
+    {
+      "name": "rdap_lookup_ip",
+      "description": "Look up network registration data for an IP address via RDAP. Returns network CIDR, ASN, holder name, country, and abuse contacts.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "IPv4 or IPv6 address (e.g., 8.8.8.8)."
+          }
+        },
+        "required": ["ip"]
+      },
+      "annotations": {
+        "endpoint": "https://rdap.org/ip/{ip}",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["whois", "ip", "asn"]
+      }
+    },
+    {
+      "name": "crt_sh_search",
+      "description": "Search Certificate Transparency logs for certificates issued for a domain. Use wildcard %.example.com to enumerate subdomains. Returns issuer, serial, validity window, and SAN entries.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Target domain. Use %.example.com for wildcard subdomain search."
+          }
+        },
+        "required": ["domain"]
+      },
+      "annotations": {
+        "endpoint": "https://crt.sh/?q={domain}&output=json",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "moderate",
+        "tags": ["certificates", "subdomain-enum", "tls"]
+      }
+    },
+    {
+      "name": "wayback_cdx",
+      "description": "Query the Internet Archive's CDX index for historical snapshots of a URL. Returns list of (timestamp, original URL, status code, MIME type) tuples. Useful for recovering deleted content and tracking changes over time.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Target URL or pattern (e.g., example.com/*)."
+          },
+          "from": {
+            "type": "string",
+            "description": "Start timestamp YYYYMMDD (optional)."
+          },
+          "to": {
+            "type": "string",
+            "description": "End timestamp YYYYMMDD (optional)."
+          },
+          "collapse": {
+            "type": "string",
+            "default": "digest",
+            "description": "Field to collapse on (default: digest, dedupes identical content)."
+          }
+        },
+        "required": ["url"]
+      },
+      "annotations": {
+        "endpoint": "http://web.archive.org/cdx/search/cdx",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["archive", "history", "wayback"]
+      }
+    },
+    {
+      "name": "wayback_save",
+      "description": "Trigger a Wayback Machine snapshot of a URL. Use to preserve evidence at the time of investigation.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL to archive."
+          }
+        },
+        "required": ["url"]
+      },
+      "annotations": {
+        "endpoint": "https://web.archive.org/save/{url}",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["archive", "preservation", "evidence"]
+      }
+    },
+    {
+      "name": "shodan_internetdb",
+      "description": "Look up the public Shodan profile of an IP — returns hostnames, open ports, CVE list, and tags. No API key required; less detailed than the paid Shodan API.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "IPv4 address."
+          }
+        },
+        "required": ["ip"]
+      },
+      "annotations": {
+        "endpoint": "https://internetdb.shodan.io/{ip}",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["infrastructure", "ports", "vulns"]
+      }
+    },
+    {
+      "name": "ipinfo_lookup",
+      "description": "Look up geolocation, ASN, and hosting metadata for an IP via ipinfo.io free tier. Returns city, region, country, org (ASN + holder name), and hostname.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "IPv4 or IPv6 address."
+          }
+        },
+        "required": ["ip"]
+      },
+      "annotations": {
+        "endpoint": "https://ipinfo.io/{ip}/json",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "50000 requests/month (free tier)",
+        "tags": ["geolocation", "ip", "asn"]
+      }
+    },
+    {
+      "name": "bgpview_asn",
+      "description": "Look up ASN details — holder name, country, RIR, route prefixes, and upstream peers.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "asn": {
+            "type": "string",
+            "description": "AS number as digits (e.g., 15169) or AS15169 form."
+          }
+        },
+        "required": ["asn"]
+      },
+      "annotations": {
+        "endpoint": "https://api.bgpview.io/asn/{asn}",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["routing", "asn", "bgp"]
+      }
+    },
+    {
+      "name": "github_user_lookup",
+      "description": "Look up a GitHub user's public profile — name, bio, location, email (if public), avatar, account creation date, repository count.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "GitHub username."
+          }
+        },
+        "required": ["username"]
+      },
+      "annotations": {
+        "endpoint": "https://api.github.com/users/{username}",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "60 req/hour unauthenticated; 5000/hour with free token",
+        "tags": ["github", "username-enum", "pivoting"]
+      }
+    },
+    {
+      "name": "github_code_search",
+      "description": "Search public GitHub code for keywords. Useful for finding leaked credentials, internal documentation, or references to a target. Severe rate limit without authentication.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "GitHub code search query (e.g., 'example.com filename:.env')."
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "endpoint": "https://api.github.com/search/code",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "10 req/min unauthenticated; 30 req/min with free token",
+        "tags": ["github", "code", "leaks"]
+      }
+    },
+    {
+      "name": "urlscan_search",
+      "description": "Search urlscan.io public scans for a domain, IP, or URL. Returns recent scan results with page DOM, screenshots (if available), and detected technologies.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (e.g., 'domain:example.com' or 'ip:1.2.3.4')."
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "endpoint": "https://urlscan.io/api/v1/search/",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "100 scans/day unauthenticated; 5000/day with free token",
+        "tags": ["threat-intel", "url", "scanning"]
+      }
+    },
+    {
+      "name": "alienvault_otx_lookup",
+      "description": "Look up an indicator (domain, IP, hostname, URL, email, hash) in AlienVault OTX. Returns related pulses, threat actors, and other indicators linked by the community.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "indicator_type": {
+            "type": "string",
+            "enum": ["domain", "ip", "hostname", "url", "email", "hash", "file"]
+          },
+          "value": {
+            "type": "string",
+            "description": "Indicator value."
+          }
+        },
+        "required": ["indicator_type", "value"]
+      },
+      "annotations": {
+        "endpoint": "https://otx.alienvault.com/api/v1/indicators/{type}/{value}/general",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["threat-intel", "indicators"]
+      }
+    },
+    {
+      "name": "hibp_breach_check",
+      "description": "Check whether an email appears in any HaveIBeenPwned breach. Free endpoint returns breach list (paid key required for breach names as of recent HIBP changes). NEVER use breach credentials to attempt login — that crosses from OSINT into intrusion.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address to check."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "HIBP API key (required for breach name listing)."
+          }
+        },
+        "required": ["email"]
+      },
+      "annotations": {
+        "endpoint": "https://haveibeenpwned.com/api/v3/breachedaccount/{email}",
+        "method": "GET",
+        "auth_required": "optional (key required for breach names)",
+        "rate_limit": "1 req/1.5s per IP",
+        "tags": ["breach-data", "email"],
+        "ethical_review_required": false
+      }
+    },
+    {
+      "name": "gravatar_lookup",
+      "description": "Look up a Gravatar profile from an email address (MD5 hashed). Returns avatar URL, profile name, and links to other platforms if the user has linked them.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address to hash and look up."
+          }
+        },
+        "required": ["email"]
+      },
+      "annotations": {
+        "endpoint": "https://www.gravatar.com/{md5(email)}.json",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["username-enum", "avatar", "pivoting"]
+      }
+    },
+    {
+      "name": "virustotal_domain_report",
+      "description": "Look up a domain in VirusTotal. Returns detections, passive DNS records, related URLs, and historical categorizations. Free public API: 4 req/min, 500 req/day.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Target domain."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "VirusTotal API key (free tier available)."
+          }
+        },
+        "required": ["domain", "api_key"]
+      },
+      "annotations": {
+        "endpoint": "https://www.virustotal.com/api/v3/domains/{domain}",
+        "method": "GET",
+        "auth_required": true,
+        "rate_limit": "4 req/min, 500 req/day (free)",
+        "tags": ["threat-intel", "domain", "passive-dns"]
+      }
+    },
+    {
+      "name": "shodan_host_lookup",
+      "description": "Look up full Shodan host data — banners, services, vulnerabilities, hostnames, tags. Requires Shodan API key.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "IPv4 address."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "Shodan API key."
+          }
+        },
+        "required": ["ip", "api_key"]
+      },
+      "annotations": {
+        "endpoint": "https://api.shodan.io/shodan/host/{ip}?key={api_key}",
+        "method": "GET",
+        "auth_required": true,
+        "tags": ["infrastructure", "ports", "banners", "vulns"]
+      }
+    },
+    {
+      "name": "securitytrails_history",
+      "description": "Look up historical DNS records for a domain via SecurityTrails. Returns A, AAAA, MX, NS, TXT history with timestamps. Useful for tracking infrastructure changes.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Target domain."
+          },
+          "record_type": {
+            "type": "string",
+            "default": "a",
+            "description": "DNS record type to retrieve history for."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "SecurityTrails API key."
+          }
+        },
+        "required": ["domain", "api_key"]
+      },
+      "annotations": {
+        "endpoint": "https://api.securitytrails.com/v1/history/{domain}/dns/{record_type}",
+        "method": "GET",
+        "auth_required": true,
+        "tags": ["domain-intel", "passive-dns", "history"]
+      }
+    },
+    {
+      "name": "hunter_email_finder",
+      "description": "Find email addresses associated with a domain via Hunter.io. Returns candidate emails with confidence scores and sources.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Target domain."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "Hunter.io API key."
+          }
+        },
+        "required": ["domain", "api_key"]
+      },
+      "annotations": {
+        "endpoint": "https://api.hunter.io/v2/email-finder",
+        "method": "GET",
+        "auth_required": true,
+        "tags": ["people-intel", "email", "enrichment"]
+      }
+    },
+    {
+      "name": "nominatim_geocode",
+      "description": "Forward geocode an address or place name using OpenStreetMap Nominatim. Returns lat/long with bounding box. Strict 1 req/sec rate limit; must identify with User-Agent.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Address or place name."
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "endpoint": "https://nominatim.openstreetmap.org/search",
+        "method": "GET",
+        "auth_required": false,
+        "rate_limit": "1 req/sec per IP",
+        "tags": ["geolocation", "geocoding", "geoint"]
+      }
+    },
+    {
+      "name": "blockchain_address_lookup",
+      "description": "Look up Bitcoin address balance and transactions via Blockchain.com. Free, no key.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Bitcoin address."
+          }
+        },
+        "required": ["address"]
+      },
+      "annotations": {
+        "endpoint": "https://blockchain.info/rawaddr/{address}",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["cryptocurrency", "bitcoin"]
+      }
+    },
+    {
+      "name": "etherscan_address_lookup",
+      "description": "Look up Ethereum address transactions via Etherscan free API. Returns normal transactions, internal transactions, ERC-20 transfers, and ERC-721 transfers.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Ethereum address (0x...)."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "Etherscan free API key."
+          }
+        },
+        "required": ["address", "api_key"]
+      },
+      "annotations": {
+        "endpoint": "https://api.etherscan.io/api",
+        "method": "GET",
+        "auth_required": true,
+        "rate_limit": "5 req/sec, 100,000 req/day (free)",
+        "tags": ["cryptocurrency", "ethereum"]
+      }
+    },
+    {
+      "name": "mastodon_user_lookup",
+      "description": "Look up a Mastodon user by handle across the fediverse. Returns account ID, display name, bio, avatar, follower counts, and creation date.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "instance": {
+            "type": "string",
+            "description": "Mastodon instance hostname (e.g., mastodon.social)."
+          },
+          "handle": {
+            "type": "string",
+            "description": "User handle without @ prefix."
+          }
+        },
+        "required": ["instance", "handle"]
+      },
+      "annotations": {
+        "endpoint": "https://{instance}/api/v1/accounts/lookup",
+        "method": "GET",
+        "auth_required": false,
+        "tags": ["social-media", "mastodon", "username-enum"]
+      }
+    }
+  ],
+  "metadata": {
+    "homepage": "https://github.com/frangelbarrera/osint-agent-skills",
+    "license": "MIT",
+    "author": "Frangel Raúl Crespo Barrera",
+    "note": "Tools listed here are the subset that map cleanly to MCP input_schema format. For CLI tools (sherlock, holehe, theHarvester, etc.) see cli-tools.yaml — those are invoked as subprocesses rather than HTTP calls."
+  }
+}

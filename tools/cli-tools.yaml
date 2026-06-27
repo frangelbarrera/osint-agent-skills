@@ -1,0 +1,305 @@
+﻿# OSINT Agent Skills — CLI Tools Registry
+# Local command-line tools that an agent can invoke as subprocesses.
+# Each entry documents install method, command pattern, expected output,
+# and integration notes. CLI tools often produce richer output than HTTP
+# APIs but require local installation and maintenance.
+
+tools:
+
+  - name: "sherlock"
+    category: "username-enum"
+    description: "Search for a username across 400+ social media platforms and forums."
+    repo: "https://github.com/sherlock-project/sherlock"
+    install: "pipx install sherlock-project"
+    command: "sherlock {username} --timeout 10 --print-found"
+    parameters:
+      username: "target username"
+    output_format: "text (URLs of profiles found)"
+    integration_difficulty: "easy"
+    notes: "Use --print-found to suppress 'not found' lines. --timeout avoids long hangs on slow platforms. Some platforms produce false positives — verify each URL."
+    tags: ["username-enum", "social-media", "pivoting"]
+
+  - name: "holehe"
+    category: "email-enum"
+    description: "Check whether an email is registered on 120+ websites by examining password-reset flows."
+    repo: "https://github.com/megadose/holehe"
+    install: "pipx install holehe"
+    command: "holehe {email}"
+    parameters:
+      email: "target email"
+    output_format: "text (list of sites where email is registered)"
+    integration_difficulty: "easy"
+    notes: "Slower than API-based checks due to per-site rate limiting. Run with --only-used to filter to confirmed registrations. Use with caution — high-volume runs can trip anti-abuse heuristics."
+    tags: ["email-enum", "pivoting", "social-media"]
+
+  - name: "maigret"
+    category: "username-enum"
+    description: "Enhanced fork of sherlock — 2500+ sites, extracts additional profile metadata (links, bio, profile pic URL)."
+    repo: "https://github.com/soxoj/maigret"
+    install: "pipx install maigret"
+    command: "maigret {username} --html report.html --pdf report.pdf"
+    parameters:
+      username: "target username"
+    output_format: "HTML/PDF report + JSON"
+    integration_difficulty: "medium"
+    notes: "Heavy CPU and network usage. Consider filtering with --tag flag to limit platforms. Produces reports suitable for evidence log."
+    tags: ["username-enum", "social-media", "reporting"]
+
+  - name: "theHarvester"
+    category: "domain-recon"
+    description: "Gather emails, subdomains, hosts, and employee names from public sources for a domain."
+    repo: "https://github.com/laramies/theHarvester"
+    install: "pipx install theharvester"
+    command: "theHarvester -d {domain} -b all -f report"
+    parameters:
+      domain: "target domain"
+    output_format: "HTML / JSON / CSV report"
+    integration_difficulty: "medium"
+    notes: "Requires API keys for many sources (Censys, Hunter, SecurityTrails, etc.) — configure in api-keys.yaml. Without keys, only free sources (crt.sh, HackerTarget) work."
+    tags: ["domain-recon", "email-enum", "subdomain-enum"]
+
+  - name: "amass"
+    category: "subdomain-enum"
+    description: "OWASP project — in-depth attack surface mapping via DNS, OSINT, certificate transparency, and active enumeration."
+    repo: "https://github.com/owasp-amass/amass"
+    install: "go install -v github.com/owasp-amass/amass/v4/...@master"
+    command: "amass enum -d {domain} -passive"
+    parameters:
+      domain: "target domain"
+    output_format: "text (subdomains)"
+    integration_difficulty: "medium"
+    notes: "Passive mode uses OSINT only — no traffic to target. Active mode (omit -passive) sends DNS queries to target's nameservers. Configure API keys in ~/.config/amass.ini for full coverage."
+    tags: ["subdomain-enum", "domain-recon", "passive"]
+
+  - name: "subfinder"
+    category: "subdomain-enum"
+    description: "Fast passive subdomain enumeration from 30+ sources."
+    repo: "https://github.com/projectdiscovery/subfinder"
+    install: "go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"
+    command: "subfinder -d {domain} -silent -o subdomains.txt"
+    parameters:
+      domain: "target domain"
+    output_format: "text (one subdomain per line)"
+    integration_difficulty: "easy"
+    notes: "Faster than amass for passive enumeration. Configure API keys in ~/.config/subfinder/provider-config.yaml."
+    tags: ["subdomain-enum", "domain-recon", "passive"]
+
+  - name: "httpx"
+    category: "infrastructure"
+    description: "Fast HTTP probe — takes a list of hosts and returns live HTTP/HTTPS services, titles, status codes, technologies."
+    repo: "https://github.com/projectdiscovery/httpx"
+    install: "go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest"
+    command: "cat subdomains.txt | httpx -title -tech-detect -status-code -ip -follow-redirects"
+    parameters:
+      stdin: "list of hostnames or URLs"
+    output_format: "text (one line per live host)"
+    integration_difficulty: "easy"
+    notes: "Pair with subfinder output. Use -rate-limit to throttle. Add -screenshot for visual capture (requires headless Chrome)."
+    tags: ["infrastructure", "http", "fingerprinting"]
+
+  - name: "nuclei"
+    category: "vulnerability-scan"
+    description: "Template-based vulnerability scanner — 8000+ templates for misconfigurations, exposures, CVEs."
+    repo: "https://github.com/projectdiscovery/nuclei"
+    install: "go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"
+    command: "nuclei -u {url} -severity medium,high,critical -o findings.txt"
+    parameters:
+      url: "target URL or hostname"
+    output_format: "text / JSON"
+    integration_difficulty: "medium"
+    notes: "ACTIVE SCANNING — crosses from OSINT into vulnerability assessment. Only use with explicit authorization. For pure OSINT, restrict to -passive templates only."
+    tags: ["vulnerability-scan", "active", "authorization-required"]
+
+  - name: "shodan CLI"
+    category: "infrastructure"
+    description: "Command-line interface to the Shodan API. Requires API key."
+    repo: "https://github.com/RealCNP/Shodan.NET"
+    install: "pipx install shodan"
+    command: "shodan host {ip}"
+    parameters:
+      ip: "target IPv4"
+    output_format: "text (formatted)"
+    integration_difficulty: "easy"
+    notes: "Initialize with `shodan init API_KEY` after install. Use `shodan search` for query-based discovery and `shodan scan` for active scanning (paid credits)."
+    tags: ["infrastructure", "shodan"]
+
+  - name: "ExifTool"
+    category: "metadata"
+    description: "Read, write, and edit EXIF/IPTC/XMP metadata in image, audio, and video files."
+    repo: "https://exiftool.org/"
+    install: "apt install libimage-exiftool-perl"
+    command: "exiftool -j -a -u -g1 {file}"
+    parameters:
+      file: "path to image/document/audio/video file"
+    output_format: "JSON (with -j flag)"
+    integration_difficulty: "easy"
+    notes: "Use -a to show duplicate tags, -u to show unknown tags, -g1 to group tags by family 1. Essential for image geolocation and document attribution."
+    tags: ["metadata", "exif", "geoint", "documents"]
+
+  - name: "Metagoofil"
+    category: "metadata"
+    description: "Extract metadata from public documents (PDF, DOCX, XLSX, PPTX) found on a target domain."
+    repo: "https://github.com/opsdisk/metagoofil"
+    install: "pipx install metagoofil"
+    command: "metagoofil -d {domain} -t pdf,doc,xls -l 20 -n 5 -o metadata_output/"
+    parameters:
+      domain: "target domain"
+    output_format: "extracted files + metadata report"
+    integration_difficulty: "medium"
+    notes: "Downloads files from Google search results — may trigger anti-bot. Reduce -l limit if you hit rate limits."
+    tags: ["metadata", "documents", "domain-recon"]
+
+  - name: "FOCA"
+    category: "metadata"
+    description: "Windows-only GUI tool for document metadata extraction and analysis. Strong on hidden metadata in Office files."
+    repo: "https://github.com/ElevenPaths/FOCA"
+    install: "Download installer from https://github.com/ElevenPaths/FOCA/releases"
+    command: "GUI application — no CLI"
+    parameters: {}
+    output_format: "GUI report"
+    integration_difficulty: "hard"
+    notes: "Windows-only. Not agent-friendly — listed for completeness. Use ExifTool + Metagoofil for headless workflows."
+    tags: ["metadata", "documents", "windows-only"]
+
+  - name: "twayback"
+    category: "archive"
+    description: "Bulk download historical snapshots of a URL from the Wayback Machine."
+    repo: "https://github.com/anthonyharrison/twayback"
+    install: "pipx install twayback"
+    command: "twayback -u {url} -o output_dir/"
+    parameters:
+      url: "target URL"
+    output_format: "files (one per snapshot)"
+    integration_difficulty: "easy"
+    notes: "Useful for recovering deleted content and tracking changes over time. Pair with diff tools to spot edits."
+    tags: ["archive", "wayback", "history"]
+
+  - name: "Photon"
+    category: "web-crawl"
+    description: "Fast crawler — extracts URLs, emails, social media accounts, files, and secret keys from a target website."
+    repo: "https://github.com/s0md3v/Photon"
+    install: "pipx install photon"
+    command: "photon -u {url} -l 3 -o output_dir/"
+    parameters:
+      url: "target URL"
+    output_format: "files (URLs, emails, intel, keys)"
+    integration_difficulty: "easy"
+    notes: "Respect robots.txt by default. Use --ninja for stealth. Be polite — set --delay for slow targets."
+    tags: ["web-crawl", "email-enum", "secret-detection"]
+
+  - name: "twint"
+    category: "social-media"
+    description: "Twitter scraper — no API required. Pull tweets, followers, following, and search results."
+    repo: "https://github.com/twintproject/twint"
+    install: "pipx install twint"
+    command: "twint -u {username} -o output.json --json"
+    parameters:
+      username: "Twitter handle (without @)"
+    output_format: "JSON"
+    integration_difficulty: "medium"
+    notes: "As of X's API changes, twint functionality is intermittent. Use as a secondary tool; cross-verify with nitter instances or official API."
+    tags: ["social-media", "twitter", "scraping"]
+
+  - name: "instaloader"
+    category: "social-media"
+    description: "Instagram scraper — download public posts, stories, profile pictures, and metadata."
+    repo: "https://instaloader.github.io/"
+    install: "pipx install instaloader"
+    command: "instaloader profile {username} --no-pictures --no-videos --no-posts"
+    parameters:
+      username: "Instagram username"
+    output_format: "JSON metadata + downloaded media"
+    integration_difficulty: "medium"
+    notes: "Instagram aggressively rate-limits. Use --login for higher limits (but this exposes the login account to the target). For OSINT, prefer metadata-only flags."
+    tags: ["social-media", "instagram", "scraping"]
+
+  - name: "WaybackExtractor"
+    category: "archive"
+    description: "Extract URLs from the Wayback Machine archive for a domain."
+    repo: "https://github.com/NeelShah88/WaybackExtractor"
+    install: "pipx install wayback-extractor"
+    command: "wayback-extractor {domain} 20100101 20240101"
+    parameters:
+      domain: "target domain"
+    output_format: "text (URLs)"
+    integration_difficulty: "easy"
+    notes: "Useful for building historical URL lists to feed into httpx or Photon."
+    tags: ["archive", "wayback"]
+
+  - name: "h8mail"
+    category: "breach-data"
+    description: "Breach data search across free and paid sources (HIBP, Snusbase, Leakpeek)."
+    repo: "https://github.com/khast3x/h8mail"
+    install: "pipx install h8mail"
+    command: "h8mail -t {email} -c h8mail_config.ini"
+    parameters:
+      email: "target email"
+    output_format: "JSON / text"
+    integration_difficulty: "medium"
+    notes: "Requires API keys in config file for paid sources. NEVER use retrieved credentials for login."
+    tags: ["breach-data", "email"]
+
+  - name: "recon-ng"
+    category: "framework"
+    description: "Full-featured reconnaissance framework with module marketplace — similar to Metasploit for OSINT."
+    repo: "https://github.com/lanmaster53/recon-ng"
+    install: "pipx install recon-ng"
+    command: "recon-ng"
+    parameters: {}
+    output_format: "interactive shell / database"
+    integration_difficulty: "hard"
+    notes: "Steeper learning curve but powerful. Each module has its own API key requirements. Best for repeat investigations on the same target."
+    tags: ["framework", "recon", "modular"]
+
+  - name: "SpiderFoot"
+    category: "framework"
+    description: "Automated OSINT framework — 200+ modules covering most OSINT data sources."
+    repo: "https://github.com/smicallef/spiderfoot"
+    install: "git clone https://github.com/smicallef/spiderfoot && cd spiderfoot && pip install -r requirements.txt"
+    command: "python3 spiderfoot.py -s {target} -t INTERNET_NAME,EMAILADDR"
+    parameters:
+      target: "domain, IP, email, username, etc."
+    output_format: "JSON / HTML / CSV"
+    integration_difficulty: "medium"
+    notes: "Self-hosted. Some modules require API keys. The Web UI is convenient for ad-hoc investigations. See case-studies/ for worked examples."
+    tags: ["framework", "automated", "comprehensive"]
+
+  - name: "Maltego CE"
+    category: "framework"
+    description: "Visual link analysis — graph-based pivot discovery. Community Edition free for non-commercial use."
+    repo: "https://www.maltego.com/downloads/"
+    install: "Download installer from Maltego website"
+    command: "GUI application — limited CLI"
+    parameters: {}
+    output_format: "graph (.mtgx)"
+    integration_difficulty: "hard"
+    notes: "GUI-first; agent integration is limited. Listed for completeness — useful for human analysts working alongside agent-driven investigations."
+    tags: ["framework", "visual", "graph"]
+
+  - name: "osrframework"
+    category: "username-enum"
+    description: "Spain-led OSINT framework with username, phone, and domain enumeration across multiple platforms."
+    repo: "https://github.com/i3visio/osrframework"
+    install: "pipx install osrframework"
+    command: "osrframework-check_all -n {username}"
+    parameters:
+      username: "target username"
+    output_format: "JSON / CSV"
+    integration_difficulty: "medium"
+    notes: "Older project — some platforms may be defunct. Cross-verify with sherlock or maigret."
+    tags: ["username-enum", "framework"]
+
+  - name: "gitrob"
+    category: "code-search"
+    description: "Scan GitHub repos for sensitive files (keys, configs, internal docs)."
+    repo: "https://github.com/michenriksen/gitrob"
+    install: "go install -v github.com/michenriksen/gitrob@latest"
+    command: "gitrob {github_user_or_org} -bind 127.0.0.1 -port 9000"
+    parameters:
+      github_user_or_org: "target GitHub account"
+    output_format: "web UI"
+    integration_difficulty: "medium"
+    notes: "Launches a local web UI for browsing findings. Requires GitHub token for higher rate limits."
+    tags: ["code-search", "github", "leaks"]
+
+# End of CLI tools registry.

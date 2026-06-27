@@ -1,0 +1,105 @@
+﻿// OSINT Agent Skills — Investigation Graph Template (Graphviz DOT)
+// Render with: dot -Tpng graph.dot -o graph.png
+// Or SVG:      dot -Tsvg graph.dot -o graph.svg
+//
+// This template is for complex investigation graphs (>50 nodes) where
+// Mermaid's rendering becomes unreadable. Graphviz handles large graphs
+// with better layout algorithms.
+
+digraph InvestigationGraph {
+    // ── Graph attributes ─────────────────────────────────────────────────
+    rankdir=TB;
+    splines=ortho;
+    nodesep=0.6;
+    ranksep=0.8;
+    fontname="Helvetica Neue";
+    label="Investigation Graph: [SUBJECT] — [DATE]";
+    labelloc="t";
+    fontsize=16;
+
+    // ── Node defaults ────────────────────────────────────────────────────
+    node [
+        fontname="Helvetica Neue",
+        fontsize=11,
+        style="filled,rounded",
+        penwidth=2
+    ];
+
+    // ── Edge defaults ────────────────────────────────────────────────────
+    edge [
+        fontname="Helvetica Neue",
+        fontsize=9,
+        color="#666666"
+    ];
+
+    // ── Entity type styles ───────────────────────────────────────────────
+    // Person — red ellipse
+    person1 [label="John Doe", shape=ellipse, fillcolor="#FF6B6B", fontcolor=white];
+    person2 [label="Jane Smith", shape=ellipse, fillcolor="#FF6B6B", fontcolor=white];
+
+    // Domain — teal box
+    domain1 [label="example.com", shape=box, fillcolor="#4ECDC4", fontcolor=white];
+    domain2 [label="mail.example.com", shape=box, fillcolor="#4ECDC4", fontcolor=white];
+
+    // IP — yellow diamond
+    ip1 [label="93.184.216.34", shape=diamond, fillcolor="#FFE66D", fontcolor="#333333"];
+    ip2 [label="93.184.216.35", shape=diamond, fillcolor="#FFE66D", fontcolor="#333333"];
+
+    // Email — green note
+    email1 [label="johndoe@example.com", shape=note, fillcolor="#95E1D3", fontcolor="#333333"];
+
+    // Username — purple hexagon
+    user1 [label="johndoe1337", shape=hexagon, fillcolor="#C9B1FF", fontcolor=white];
+
+    // Phone — orange parallelogram
+    phone1 [label="+15551234567", shape=parallelogram, fillcolor="#FFB347", fontcolor=white];
+
+    // Crypto wallet — khaki parallelogram
+    wallet1 [label="bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", shape=parallelogram, fillcolor="#F0E68C", fontcolor="#333333"];
+
+    // Organization — sky blue 3D box
+    org1 [label="Acme Corp", shape=box3d, fillcolor="#87CEEB", fontcolor="#333333"];
+
+    // ASN — plum double octagon
+    asn1 [label="AS15169", shape=doubleoctagon, fillcolor="#DDA0DD", fontcolor=white];
+
+    // Document — light steel cylinder
+    doc1 [label="registration.pdf", shape=cylinder, fillcolor="#B0C4DE", fontcolor="#333333"];
+
+    // Location — pale green circle
+    loc1 [label="Boston, US", shape=circle, fillcolor="#98FB98", fontcolor="#333333"];
+
+    // Unverified node — dashed border, white fill
+    user2 [label="jdoe99 (unverified)", shape=hexagon, fillcolor="#f9f9f9", fontcolor="#999999", style="filled,dashed,rounded"];
+
+    // ── Relationships ────────────────────────────────────────────────────
+    // Format: source -> target [label="relationship (Confidence)"];
+    // Solid line = Confirmed/Probable, dashed = Unverified/Inferred
+
+    domain1 -> ip1 [label="resolves to (Confirmed)"];
+    domain1 -> org1 [label="registered by (Probable)"];
+    domain2 -> ip2 [label="resolves to (Confirmed)"];
+    person1 -> email1 [label="uses email (Confirmed)"];
+    person1 -> user1 [label="uses username (Probable)"];
+    person1 -> org1 [label="employed at (Confirmed)"];
+    ip1 -> asn1 [label="belongs to (Confirmed)"];
+    person1 -> loc1 [label="located in (Probable)"];
+    person1 -> wallet1 [label="owns wallet (Inferred)"];
+    user2 -> user1 [label="same identity as (Unverified)", style=dashed];
+
+    // ── Clustering (optional) ────────────────────────────────────────────
+    // Group related entities into subgraphs for visual clarity
+    subgraph cluster_infra {
+        label="Infrastructure";
+        style="rounded,dashed";
+        color="#cccccc";
+        domain1; domain2; ip1; ip2; asn1;
+    }
+
+    subgraph cluster_identity {
+        label="Identity";
+        style="rounded,dashed";
+        color="#cccccc";
+        person1; email1; user1; user2; phone1; loc1;
+    }
+}
