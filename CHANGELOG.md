@@ -30,75 +30,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
-## [1.3.0] —” 2026-06-27
+## [1.3.0] — 2026-06-27
 
 ### Added
 
-- **Test suite** (`tests/test-prompts.md`) —” 10 test prompts with expected behavior,
+- **Test suite** (`tests/test-prompts.md`) — 10 test prompts with expected behavior,
   pass/fail criteria, and fail indicators. Covers: persona adoption, anti-hallucination,
   domain investigation with pivots, ethics refusal, OPSEC compliance, SATs for
   attribution, confidence labeling, graph generation, timeline generation, and tool
   failure handling. Includes scoring rubric (10/10 = operational, <6 = re-setup required).
 
-- **Validation scripts** (`scripts/validate.ps1` + `scripts/validate.sh`) —” automated
+- **Validation scripts** (`scripts/validate.ps1` + `scripts/validate.sh`) — automated
   repository validation. 10 check categories covering: core files, knowledge base,
   tool registries, templates, ethics, JSON validity, YAML validity, MCP server syntax,
   config path references, and system prompt cross-references. Cross-platform
   (PowerShell for Windows, Bash for Linux/macOS). Exit code 0 = pass, 1 = fail.
 
-- **GitHub CI** (`.github/workflows/validate.yml`) —” runs validation on every push
+- **GitHub CI** (`.github/workflows/validate.yml`) — runs validation on every push
   and PR. Checks: repository structure, MCP server syntax, JSON validity, broken
   internal links, and agent-config.yaml references.
 
 - **Issue templates** (`.github/ISSUE_TEMPLATE/`):
-  - `tool-request.md` —” structured form for requesting new tools. Includes fields
+  - `tool-request.md` — structured form for requesting new tools. Includes fields
     for category, pricing, rate limits, endpoint, example usage, and verification
     checklist.
-  - `playbook-request.md` —” structured form for requesting new pivot playbooks.
+  - `playbook-request.md` — structured form for requesting new pivot playbooks.
     Includes trigger, steps, anti-patterns, output format, and verification checklist.
 
-- **PR template** (`.github/PULL_REQUEST_TEMPLATE.md`) —” structured PR form with
+- **PR template** (`.github/PULL_REQUEST_TEMPLATE.md`) — structured PR form with
   change type, files changed, validation checklist, reviewer notes, and attribution.
 
-- **Quick reference card** (`docs/quick-reference.md`) —” one-page cheat sheet.
+- **Quick reference card** (`docs/quick-reference.md`) — one-page cheat sheet.
   What it is, 30-second setup, what the agent becomes, what's inside (92+ files),
   what it does NOT do, test prompt, validation commands, key principles, license.
 
 ### Changed
 
-- `agent-config.yaml` —” no structural changes (v1.2.0 config remains valid). Version
+- `agent-config.yaml` — no structural changes (v1.2.0 config remains valid). Version
   note: the quick reference and test suite are discoverable via the standard
   directory structure.
 
-## [1.2.0] —” 2026-06-27
+## [1.2.0] — 2026-06-27
 
 ### Added
 
 - **Structured Analytic Techniques (SATs)** (`knowledge/methodologies/structured-analytic-techniques.md`)
-  —” ACH, Key Assumptions Check, Devil's Advocacy. Mandatory before attribution claims.
+  — ACH, Key Assumptions Check, Devil's Advocacy. Mandatory before attribution claims.
 - **Threat Actor Profiling** (`knowledge/domains/threat-actors.md` + `templates/reports/threat-actor-profile.md`).
-- **Agent OPSEC** (`ethics/agent-opsec.md`) —” 10 operational security rules with pre/post checklists.
+- **Agent OPSEC** (`ethics/agent-opsec.md`) — 10 operational security rules with pre/post checklists.
 
 ### Changed
 
-- `agent-config.yaml` —” v1.2.0. Added SATs, threat actor, OPSEC references.
-- `system-prompt.md` —” Phase 4b (SATs), attribution standard, OPSEC rules, threat actor protocol.
+- `agent-config.yaml` — v1.2.0. Added SATs, threat actor, OPSEC references.
+- `system-prompt.md` — Phase 4b (SATs), attribution standard, OPSEC rules, threat actor protocol.
 
-## [1.1.0] —” 2026-06-27
+## [1.1.0] — 2026-06-27
 
 ### Added
 
-- **MCP Server** (`tools/mcp-server.js`) —” runnable stdio MCP server.
-- **Investigation graph templates** (`templates/graphs/`) —” Mermaid, DOT, JSON schema.
+- **MCP Server** (`tools/mcp-server.js`) — runnable stdio MCP server.
+- **Investigation graph templates** (`templates/graphs/`) — Mermaid, DOT, JSON schema.
 - **Graph generation technique** (`knowledge/techniques/graph-generation.md`).
 - **Timeline template** (`templates/reports/timeline.md`).
 
 ### Changed
 
-- `agent-config.yaml` —” v1.1.0. Added graph and timeline references.
-- `system-prompt.md` —” graph + timeline mandatory in reports.
+- `agent-config.yaml` — v1.1.0. Added graph and timeline references.
+- `system-prompt.md` — graph + timeline mandatory in reports.
 
-## [1.0.0] —” 2026-06-27
+## [1.0.0] — 2026-06-27
 
 ### Added
 
