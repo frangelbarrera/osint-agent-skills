@@ -1,0 +1,48 @@
+{
+  "name": "@frangelbarrera/osint-agent-skills",
+  "version": "1.4.1",
+  "mcpName": "io.github.frangelbarrera/osint-agent-skills",
+  "description": "OSINT Agent Skills — 23 MCP tools for autonomous OSINT investigation. DNS, WHOIS, CT logs, Shodan, breach data, geolocation, crypto tracing. Works with Claude Code, Cursor, any MCP client.",
+  "main": "tools/mcp-server.js",
+  "bin": {
+    "osint-agent-skills": "tools/mcp-server.js"
+  },
+  "scripts": {
+    "start": "node tools/mcp-server.js"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "osint",
+    "intelligence",
+    "security",
+    "claude",
+    "cursor",
+    "model-context-protocol",
+    "ai-agent"
+  ],
+  "author": "Frangel Raúl Crespo Barrera <frangelbarrera@users.noreply.github.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/frangelbarrera/osint-agent-skills",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/frangelbarrera/osint-agent-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/frangelbarrera/osint-agent-skills/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "tools/mcp-server.js",
+    "tools/mcp-tools.json",
+    "system-prompt.md",
+    "agent-config.yaml",
+    "knowledge/",
+    "templates/",
+    "ethics/",
+    "README.md",
+    "LICENSE"
+  ]
+}
