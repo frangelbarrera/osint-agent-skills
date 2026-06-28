@@ -155,6 +155,10 @@ async function executeTool(toolName, args) {
   if (toolName === "hibp_breach_check") {
     endpoint = "https://haveibeenpwned.com/api/v3/breachedaccount/" + encodeURIComponent(args.email);
   }
+  if (toolName === "gravatar_lookup") {
+    var hash = require("crypto").createHash("md5").update(args.email.trim().toLowerCase()).digest("hex");
+    endpoint = "https://www.gravatar.com/" + hash + ".json";
+  }
   if (toolName === "hunter_email_finder") {
     endpoint = "https://api.hunter.io/v2/email-finder?domain=" + encodeURIComponent(args.domain);
     if (args.api_key) endpoint += "&api_key=" + args.api_key;
