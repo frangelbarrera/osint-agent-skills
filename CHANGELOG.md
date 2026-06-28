@@ -108,7 +108,7 @@ _Nothing yet._
 
 ### Attribution
 
-- Methodology distilled from OSINT-BIBLE by Frangel RaÃºl Crespo Barrera
+- Methodology distilled from OSINT-BIBLE by Frangel Raúl Crespo Barrera
   (https://github.com/frangelbarrera/OSINT-BIBLE).
 
 [Unreleased]: https://github.com/frangelbarrera/osint-agent-skills/compare/v1.3.0...HEAD
