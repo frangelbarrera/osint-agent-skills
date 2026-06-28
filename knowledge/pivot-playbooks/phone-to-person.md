@@ -83,19 +83,19 @@ You have a phone number from any prior pivot — for example, a breach-corpus `p
 - **Expected output:** The crowd-suggested name and profile photo associated with the number, when any Truecaller/Sync.me user has saved the contact.
 - **Pivot point:** The name and photo are crowd-sourced — they reflect what other Truecaller users have labeled the number. This is medium-confidence identity attribution: high precision (the labels are usually accurate) but variable recall (many numbers have no label). Profile photos can be reverse-image-searched using the `photo-to-location.md` and `username-to-identity.md` reverse-image-search steps.
 
-## Step 6: Phone-only breach search via HIBP
+## Step 6: Phone number in breach data
 
-- **Tool:** HIBP API v3 — https://haveibeenpwned.com/API/v3 (phone-search endpoint)
-- **Command:**
-  ```bash
-  curl -s -H "hibp-api-key: $HIBP_KEY" \
-       -H "user-agent: osint-agent-skills" \
-       "https://haveibeenpwned.com/api/v3/breachstats?phone=15551234567" \
-    | jq '.Breaches[] | {Name, BreachDate, DataClasses}'
-  ```
-  Note: HIBP's phone-search endpoint was introduced in 2020 and covers breaches that exposed phone numbers (Facebook 2021, LinkedIn 2021 phone-leak, etc.).
-- **Expected output:** List of breaches where this phone number appears, with breach dates and exposed data classes.
-- **Pivot point:** Each breach is a candidate pivot into `breach-to-credentials.md`. The breach record typically includes the email and username associated with the phone in that breach — the strongest cross-link available for phone-based identity attribution.
+> **Note:** HaveIBeenPwned (HIBP) does not support native phone number
+> searches via its API — the `breachstats?phone=` endpoint does not
+> exist. HIBP only supports email-based queries.
+>
+> To search for phone numbers in breach data, use alternative services:
+> - **DeHashed** — supports phone-number queries (paid API key required)
+> - **IntelX** — supports phone-number queries (free tier available)
+>
+> Use the E.164 normalized phone number (from Step 1) as the search
+> query. Record any breaches or associated identities discovered, and
+> pivot to `breach-to-credentials.md` for credential-based follow-up.
 
 ## Step 7: Telegram presence
 
