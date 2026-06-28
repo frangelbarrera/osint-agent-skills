@@ -33,7 +33,7 @@ Modern LLMs are powerful OSINT tools —” but only when given the right discip
 
 `osint-agent-skills` solves this by codifying the operating rules that a senior analyst would otherwise enforce through peer review. The system prompt is brutally explicit about anti-hallucination. The pivot playbooks tell the agent exactly what to do when it finds an email, a domain, a phone number, a cryptocurrency wallet, or a photograph. The ethics framework defines what is in-bounds by jurisdiction. The report templates enforce source citation and confidence labeling.
 
-The result: when you ask an agent that has consumed this knowledge base "investigate the domain `example.com`", you get a structured intelligence report with cited sources, performed pivots, and explicit limitations —” not a stream of plausible-sounding prose.
+The result: when you ask an agent that has consumed this knowledge base investigate the domain `example.com`", you get a structured intelligence report with cited sources, performed pivots, and explicit limitations —” not a stream of plausible-sounding prose.
 
 ---
 
@@ -44,7 +44,7 @@ The result: when you ask an agent that has consumed this knowledge base "investi
 - **Journalists** investigating disinformation, fraud, or corruption —” especially those using Bellingcat-style methodology.
 - **Due diligence teams** who need to background companies and individuals from public sources.
 - **OSINT educators** who want a reference framework for teaching methodology.
-- **Anyone** who has watched an LLM "investigate" something and produce confidently wrong results.
+- **Anyone** who has watched an LLM investigate something and produce confidently wrong results.
 
 ---
 
@@ -78,7 +78,7 @@ The agent should load the system prompt, plan the investigation using the intell
 
 ```
 osint-agent-skills/
-system-prompt.md           # The "brain" —” agent adopts this persona
+system-prompt.md           # The brain agent adopts this persona
 agent-config.yaml          # Declarative config that agents read
 README.md                  # This file
 LICENSE                    # MIT
@@ -89,7 +89,7 @@ knowledge/                 # The methodology + playbooks
 methodologies/         # Intelligence cycle, ATT&CK, Bellingcat, etc.
 domains/               # Person, domain, IP, company, phone, crypto, ...
 techniques/            # Dorks, EXIF, Wayback, CT logs, ...
-pivot-playbooks/       # "If you find X, investigate Y"
+pivot-playbooks/       # If you find X, investigate Y"
 ‚
 tools/                     # Tool registries
 free-tools.yaml        # No API key required
