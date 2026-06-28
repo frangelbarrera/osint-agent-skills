@@ -1,4 +1,4 @@
-﻿# Pivot Playbook: Phone -> Person
+# Pivot Playbook: Phone -> Person
 
 ## Trigger
 

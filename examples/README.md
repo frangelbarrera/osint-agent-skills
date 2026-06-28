@@ -1,4 +1,4 @@
-﻿# Examples
+# Examples
 
 The `examples/` directory contains walkthroughs of common OSINT investigation types, performed end-to-end against **safe, synthetic targets** (`example.com`, `test@example.com`, `testuser`). Agents can run these walkthroughs in full without risk of causing harm, tipping off a real subject, or producing real-world intelligence on a real person.
 

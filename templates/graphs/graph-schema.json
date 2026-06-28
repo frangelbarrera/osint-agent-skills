@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OSINT Agent Skills Investigation Graph",
   "description": "Machine-readable graph schema for OSINT investigation data. Compatible with Neo4j import (via LOAD CSV), D3.js force-directed graphs, and custom analysis tools.",

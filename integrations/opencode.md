@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills + OpenCode
+# OSINT Agent Skills + OpenCode
 
 ## What you get
 

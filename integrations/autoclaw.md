@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills + AutoClaw
+# OSINT Agent Skills + AutoClaw
 
 ## What you get
 

@@ -1,4 +1,4 @@
-﻿// OSINT Agent Skills — Investigation Graph Template (Graphviz DOT)
+// OSINT Agent Skills — Investigation Graph Template (Graphviz DOT)
 // Render with: dot -Tpng graph.dot -o graph.png
 // Or SVG:      dot -Tsvg graph.dot -o graph.svg
 //

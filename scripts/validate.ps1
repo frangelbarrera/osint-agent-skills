@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 # OSINT Agent Skills â€” Repository Validation Script
 # Verifies that all files referenced in agent-config.yaml exist, JSON/YAML
 # files are parseable, and cross-references between documents are intact.

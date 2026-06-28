@@ -1,4 +1,4 @@
-﻿---
+---
 name: Pull Request
 about: Submit changes to the OSINT Agent Skills knowledge base
 title: "[PR] <brief description>"

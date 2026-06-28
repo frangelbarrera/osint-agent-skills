@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills + Cursor
+# OSINT Agent Skills + Cursor
 
 ## What you get
 

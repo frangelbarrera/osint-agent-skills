@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills â€” Quick Reference
+# OSINT Agent Skills â€” Quick Reference
 
 > One-page cheat sheet. What it is, how to set it up, what it does, what it doesn't.
 

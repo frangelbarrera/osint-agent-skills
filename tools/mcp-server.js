@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * OSINT Agent Skills — MCP Server (stdio transport)
  *

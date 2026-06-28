@@ -1,4 +1,4 @@
-﻿# Example: Investigate a Username
+# Example: Investigate a Username
 
 **Target:** `testuser` (generic placeholder — safe synthetic target)
 **Investigation type:** Username-to-identity pivot chain

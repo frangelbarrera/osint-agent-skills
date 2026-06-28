@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills + Generic Agent
+# OSINT Agent Skills + Generic Agent
 
 ## What you get
 

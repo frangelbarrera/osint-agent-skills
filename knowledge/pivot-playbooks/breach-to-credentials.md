@@ -1,4 +1,4 @@
-﻿# Pivot Playbook: Breach -> Credentials
+# Pivot Playbook: Breach -> Credentials
 
 ## Trigger
 

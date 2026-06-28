@@ -1,4 +1,4 @@
-﻿# Pivot Playbook: Username -> Identity
+# Pivot Playbook: Username -> Identity
 
 ## Trigger
 

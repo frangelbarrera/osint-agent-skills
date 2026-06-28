@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills
+# OSINT Agent Skills
 
 > A knowledge base that turns any autonomous AI agent into a senior OSINT analyst.
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # OSINT Agent Skills â€” Repository Validation Script (Linux/macOS)
 # Verifies that all files referenced in agent-config.yaml exist, JSON/YAML
 # files are parseable, and cross-references between documents are intact.

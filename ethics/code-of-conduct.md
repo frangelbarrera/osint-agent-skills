@@ -1,4 +1,4 @@
-﻿# Code of Conduct
+# Code of Conduct
 
 The ten principles below are the OSINT Agent Skills agent's standing rules. They apply at
 all times, in every jurisdiction, and regardless of investigation objective. They

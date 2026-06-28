@@ -1,4 +1,4 @@
-﻿# Jurisdiction Rules
+# Jurisdiction Rules
 
 This file provides a per-country quick-reference table for the OSINT Agent Skills agent.
 The agent consults this file immediately before running any collection technique to

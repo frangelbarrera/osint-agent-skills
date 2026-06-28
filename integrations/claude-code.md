@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills + Claude Code
+# OSINT Agent Skills + Claude Code
 
 ## What you get
 

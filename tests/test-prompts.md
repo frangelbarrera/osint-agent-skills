@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills â€” Test Prompts
+# OSINT Agent Skills â€” Test Prompts
 
 > Use these prompts to verify that an agent has correctly consumed the OSINT Agent Skills knowledge base. Each test has a prompt, expected behavior, and pass/fail criteria. Run all tests after setup and after any modification to the knowledge base.
 

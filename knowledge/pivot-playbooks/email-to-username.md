@@ -1,4 +1,4 @@
-﻿# Pivot Playbook: Email -> Username
+# Pivot Playbook: Email -> Username
 
 ## Trigger
 

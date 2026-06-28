@@ -9,7 +9,7 @@
 # embed the system_prompt inline via a Modelfile. See integrations/ for details.
 
 name: "OSINT Agent Skills"
-version: "1.2.0"
+version: "1.3.0"
 description: >-
   Autonomous OSINT investigation skills. Any agent that consumes this
   knowledge base becomes a senior open-source intelligence analyst:

@@ -1,4 +1,4 @@
-﻿# Example: Investigate a Domain
+# Example: Investigate a Domain
 
 **Target:** `example.com` (reserved per RFC 2606 — safe synthetic target)
 **Investigation type:** Domain-to-infrastructure pivot chain

@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schemas/mcp-server.schema.json",
   "name": "osint-agent-skills-tools",
   "version": "1.0.0",

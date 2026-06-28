@@ -1,4 +1,4 @@
-﻿---
+---
 name: Tool Request
 about: Request adding a new tool to the OSINT Agent Skills tool registries
 title: "[TOOL] Add <tool name> to <registry file>"

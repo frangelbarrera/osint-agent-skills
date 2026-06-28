@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills + Ollama
+# OSINT Agent Skills + Ollama
 
 ## What you get
 

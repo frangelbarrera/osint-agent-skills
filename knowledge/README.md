@@ -1,4 +1,4 @@
-﻿# Knowledge Base Index
+# Knowledge Base Index
 
 This directory is the operational core of `osint-agent-skills`. It holds the methodology, domain knowledge, techniques, and pivot playbooks that an autonomous agent consults while running an investigation. The `system-prompt.md` at the repository root tells the agent *how to behave*; this directory tells the agent *what to do*.
 

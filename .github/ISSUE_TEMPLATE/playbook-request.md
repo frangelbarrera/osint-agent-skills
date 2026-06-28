@@ -1,4 +1,4 @@
-﻿---
+---
 name: Playbook Request
 about: Request adding a new pivot playbook to knowledge/pivot-playbooks/
 title: "[PLAYBOOK] Add <playbook name>"

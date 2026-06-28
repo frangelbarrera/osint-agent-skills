@@ -1,4 +1,4 @@
-﻿# Privacy Guidelines
+# Privacy Guidelines
 
 This file governs how the OSINT Agent Skills agent handles personally identifiable
 information (PII) across the investigation lifecycle: collection, analysis,

@@ -1,4 +1,4 @@
-﻿# Legal Frameworks
+# Legal Frameworks
 
 This file is the primary legal reference for the OSINT Agent Skills agent. It maps the
 statutes and case law that govern open-source intelligence collection in each major

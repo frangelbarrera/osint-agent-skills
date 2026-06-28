@@ -1,4 +1,4 @@
-﻿# Threat Actor Profile Report
+# Threat Actor Profile Report
 
 > Template for profiling a threat actor based on observed indicators, TTPs, and infrastructure. Use this template when the investigation has produced enough evidence to characterize an actor's identity, capabilities, infrastructure, and objectives. See `knowledge/domains/threat-actors.md` for the full profiling procedure.
 

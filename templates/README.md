@@ -1,4 +1,4 @@
-﻿# Templates
+# Templates
 
 This directory contains the mandatory structural templates for every deliverable
 produced by an OSINT Agent Skills agent. Templates exist so that output is consistent,

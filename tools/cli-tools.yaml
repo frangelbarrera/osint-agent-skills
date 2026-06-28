@@ -1,4 +1,4 @@
-﻿# OSINT Agent Skills — CLI Tools Registry
+# OSINT Agent Skills — CLI Tools Registry
 # Local command-line tools that an agent can invoke as subprocesses.
 # Each entry documents install method, command pattern, expected output,
 # and integration notes. CLI tools often produce richer output than HTTP

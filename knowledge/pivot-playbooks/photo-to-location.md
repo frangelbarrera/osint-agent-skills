@@ -1,4 +1,4 @@
-﻿# Pivot Playbook: Photo -> Location
+# Pivot Playbook: Photo -> Location
 
 ## Trigger
 

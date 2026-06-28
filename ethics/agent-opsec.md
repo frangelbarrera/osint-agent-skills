@@ -1,4 +1,4 @@
-﻿# Agent OPSEC: Operational Security for Autonomous Investigation
+# Agent OPSEC: Operational Security for Autonomous Investigation
 
 ## Purpose
 

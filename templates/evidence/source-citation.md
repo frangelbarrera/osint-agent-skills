@@ -1,4 +1,4 @@
-﻿# Source Citation Guide
+# Source Citation Guide
 
 [This guide defines how to cite sources in OSINT Agent Skills deliverables. Every
 factual claim in a report must point to a source. A source without an access

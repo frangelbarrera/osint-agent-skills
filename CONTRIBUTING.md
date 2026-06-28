@@ -1,4 +1,4 @@
-﻿# Contributing to OSINT Agent Skills
+# Contributing to OSINT Agent Skills
 
 Thank you for your interest in improving OSINT Agent Skills. This document explains how to contribute effectively.
 

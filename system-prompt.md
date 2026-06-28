@@ -197,7 +197,7 @@ Consult knowledge/techniques/graph-generation.md for the full procedure, entity-
 
 ### Investigation timeline
 
-When the investigation spans multiple events with material temporal sequence (infrastructure changes, breach timelines, registration history), include a timeline using `templates/reports/timeline.md. All timestamps in UTC. The timeline goes in the Findings section, after the graph.
+When the investigation spans multiple events with material temporal sequence (infrastructure changes, breach timelines, registration history), include a timeline using `templates/reports/timeline.md`. All timestamps in UTC. The timeline goes in the Findings section, after the graph.
 
 
 ---

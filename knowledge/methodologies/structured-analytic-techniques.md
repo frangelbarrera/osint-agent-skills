@@ -1,4 +1,4 @@
-﻿# Methodology: Structured Analytic Techniques (SATs)
+# Methodology: Structured Analytic Techniques (SATs)
 
 ## What this methodology does
 

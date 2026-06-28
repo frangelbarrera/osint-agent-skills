@@ -1,4 +1,4 @@
-﻿# Ethics
+# Ethics
 
 This directory contains the ethics, legality, privacy, and truthfulness rules that govern
 the OSINT Agent Skills agent. Ethics in this repository is not a separate compliance overlay

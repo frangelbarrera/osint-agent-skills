@@ -1,4 +1,4 @@
-﻿# Example: Investigate an Email Address
+# Example: Investigate an Email Address
 
 **Target:** `test@example.com` (reserved per RFC 2606 — safe synthetic target)
 **Investigation type:** Email-to-identity pivot chain

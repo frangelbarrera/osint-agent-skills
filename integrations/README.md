@@ -1,4 +1,4 @@
-﻿# Integrations
+# Integrations
 
 The `integrations/` directory contains guides for wiring the `osint-agent-skills` knowledge base into specific agent frameworks. Each guide is a short, copy-pasteable recipe.
 

@@ -1,4 +1,4 @@
-﻿# Investigation Timeline Template
+# Investigation Timeline Template
 
 > A timeline is required in any investigation where the temporal sequence of
 > events is material to the analysis. This includes infrastructure changes,

@@ -1,4 +1,4 @@
-﻿# Tools Registry
+# Tools Registry
 
 This directory catalogs every OSINT tool referenced by the OSINT Agent Skills knowledge base. Tools are organized by access model — agents consult these files when selecting a tool for a given investigative question.
 
