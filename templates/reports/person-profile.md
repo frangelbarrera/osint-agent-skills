@@ -13,7 +13,7 @@ Classification: [CLASSIFICATION]
 - Date: [YYYY-MM-DD]
 - Analyst: [Analyst name or agent identifier]
 - Subject: [Primary name as known to the requestor]
-- Confidence: [High / Moderate / Low]
+- Confidence: [Confirmed / Probable / Unverified / Inferred / Speculative]
 - Linked investigation plan: [path or reference]
 
 ## Subject Identifiers
