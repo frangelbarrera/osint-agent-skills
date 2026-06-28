@@ -325,6 +325,24 @@ tools:
     free_tier_value: "high"
     tags: ["company-intel", "filings", "officers"]
 
+  # ─── Social media intelligence ────────────────────────────────────────
+
+  - name: "Xquik"
+    category: "social-media"
+    description: "X data API for tweet search, user lookup, timelines, followers, lists, communities, articles, trends, monitors, and webhooks."
+    signup_url: "https://xquik.com"
+    pricing: "Pay-per-use and subscription plans; verify current pricing in the API docs."
+    rate_limit: "Plan-dependent; retry only on 429 and 5xx responses with exponential backoff."
+    authentication: "API key in x-api-key header or OAuth 2.1 bearer token"
+    endpoint: "https://xquik.com/api/v1/x/tweets/search?q={query}&limit={limit}"
+    example_usage: |
+      curl -s -H "x-api-key: $XQUIK_API_KEY" \
+        "https://xquik.com/api/v1/x/tweets/search?q=from%3Aexample&limit=10" | jq .
+    documentation: "https://docs.xquik.com/api-reference/overview"
+    free_tier_value: "n/a"
+    tags: ["social-media", "x", "twitter", "tweets", "users", "trends", "webhooks"]
+    notes: "Use only for authorized public-source collection. Consult the user before consuming paid quota."
+
   # ─── Facial recognition (high-sensitivity — require human review) ──────
 
   - name: "PimEyes"
