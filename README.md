@@ -4,7 +4,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: v1.0](https://img.shields.io/badge/Status-v1.4-blue.svg)](CHANGELOG.md)
-[![Maintainer](https://img.shields.io/badge/Maintainer-Frangel%20Crespo-red.svg)](https://github.com/frangelbarrera)
 
 ---
 
