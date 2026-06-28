@@ -13,7 +13,7 @@ Classification: [CLASSIFICATION]
 - Date: [YYYY-MM-DD]
 - Analyst: [Analyst name or agent identifier]
 - Subject: [One-line description]
-- Confidence: [High / Moderate / Low]
+- Confidence: [Confirmed / Probable / Unverified / Inferred / Speculative]
 - Linked full report: [path or reference, if one exists]
 
 ## Bottom Line
