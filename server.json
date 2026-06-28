@@ -1,0 +1,45 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.frangelbarrera/osint-agent-skills",
+  "description": "OSINT Agent Skills — 23 MCP tools for autonomous OSINT investigation. DNS lookups, WHOIS/RDAP, certificate transparency, Wayback Machine, Shodan, breach data, geolocation, crypto tracing. Works with Claude Code, Cursor, and any MCP-compatible client.",
+  "repository": {
+    "url": "https://github.com/frangelbarrera/osint-agent-skills",
+    "source": "github"
+  },
+  "version": "1.4.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@frangelbarrera/osint-agent-skills",
+      "version": "1.4.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "tools": [
+    { "name": "dns_lookup", "description": "Resolve DNS records for a domain via Google DoH" },
+    { "name": "rdap_lookup_domain", "description": "RDAP domain registration lookup" },
+    { "name": "rdap_lookup_ip", "description": "RDAP IP network lookup" },
+    { "name": "crt_sh_search", "description": "Certificate Transparency log search via crt.sh" },
+    { "name": "wayback_cdx", "description": "Query Internet Archive Wayback CDX index" },
+    { "name": "wayback_save", "description": "Save a URL to the Wayback Machine" },
+    { "name": "shodan_internetdb", "description": "Free Shodan InternetDB host profile lookup" },
+    { "name": "ipinfo_lookup", "description": "IP geolocation and ASN via ipinfo.io" },
+    { "name": "bgpview_asn", "description": "ASN routing details via BGPview" },
+    { "name": "github_user_lookup", "description": "GitHub user profile lookup" },
+    { "name": "github_code_search", "description": "Search GitHub code for keywords" },
+    { "name": "urlscan_search", "description": "Search urlscan.io public scans" },
+    { "name": "alienvault_otx_lookup", "description": "AlienVault OTX threat intelligence lookup" },
+    { "name": "hibp_breach_check", "description": "Check if email appears in HaveIBeenPwned breaches" },
+    { "name": "gravatar_lookup", "description": "Look up Gravatar profile from email address" },
+    { "name": "virustotal_domain_report", "description": "VirusTotal domain report" },
+    { "name": "shodan_host_lookup", "description": "Full Shodan host lookup (requires API key)" },
+    { "name": "securitytrails_history", "description": "SecurityTrails historical DNS records" },
+    { "name": "hunter_email_finder", "description": "Find email addresses for a domain via Hunter.io" },
+    { "name": "nominatim_geocode", "description": "Forward geocode address via OpenStreetMap" },
+    { "name": "blockchain_address_lookup", "description": "Bitcoin address transaction lookup" },
+    { "name": "etherscan_address_lookup", "description": "Ethereum address transaction lookup" },
+    { "name": "mastodon_user_lookup", "description": "Mastodon user lookup across the fediverse" }
+  ]
+}
