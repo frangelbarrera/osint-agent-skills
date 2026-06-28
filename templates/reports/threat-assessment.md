@@ -14,7 +14,7 @@ Classification: [CLASSIFICATION]
 - Analyst: [Analyst name or agent identifier]
 - Threat subject: [Actor name, campaign ID, or CVE identifier]
 - Threat type: [Actor / Campaign / Vulnerability / Other]
-- Confidence: [High / Moderate / Low]
+- Confidence: [Confirmed / Probable / Unverified / Inferred / Speculative]
 - Linked investigation plan: [path or reference]
 
 ## Threat Overview
@@ -58,7 +58,7 @@ attribution (the same group of people is behind it). Be explicit about what
 would change the assessment. Delete this instruction line.]
 
 - Attribution claim: [named actor or "unattributed"]
-- Confidence: [High / Moderate / Low]
+- Confidence: [Confirmed / Probable / Unverified / Inferred / Speculative]
 - Technical basis: [what links this activity to the attributed actor]
 - Alternative hypotheses considered: [list]
 - What would change the assessment: [list]
