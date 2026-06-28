@@ -1,0 +1,60 @@
+name: Validate Repository
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate repository structure
+        run: bash scripts/validate.sh
+
+      - name: Validate MCP server syntax
+        run: node --check tools/mcp-server.js
+
+      - name: Validate JSON files
+        run: |
+          python3 -c "import json; json.load(open('tools/mcp-tools.json'))"
+          python3 -c "import json; json.load(open('templates/graphs/graph-schema.json'))"
+
+      - name: Check all markdown files have no broken internal links
+        run: |
+          # Check that all relative .md links point to existing files
+          find . -name "*.md" -print0 | while IFS= read -r -d '' mdfile; do
+            grep -oP '\[[^\]]*\]\((?!http)(?!#)([^)]*)\)' "$mdfile" | while IFS= read -r match; do
+              file=$(echo "$match" | grep -oP '(?<=\()[^)]*(?=\))')
+              target=$(realpath -m "$(dirname "$mdfile")/$file")
+              if [ ! -f "$target" ] && [ ! -d "$target" ]; then
+                echo "Broken link: $file in $mdfile"
+                exit 1
+              fi
+            done
+          done
+          echo "All internal links verified."
+
+      - name: Check agent-config.yaml references
+        run: |
+          # Verify all paths in agent-config.yaml exist
+          for p in system-prompt.md tools/free-tools.yaml tools/apis.yaml tools/mcp-tools.json tools/mcp-server.js tools/cli-tools.yaml templates/reports/intelligence-report.md templates/reports/threat-actor-profile.md templates/graphs/mermaid-graph.md ethics/agent-opsec.md; do
+            if [ ! -f "$p" ]; then
+              echo "Missing file referenced in config: $p"
+              exit 1
+            fi
+          done
+          echo "All config references verified."

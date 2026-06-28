@@ -1,0 +1,423 @@
+# OSINT Agent Skills — Paid / API-key Tools Registry
+# Tools that require an API key or paid subscription. Use after exhausting free tools.
+#
+# Each entry documents: signup URL, pricing, rate limits, authentication,
+# endpoint, example, free-tier value (low/medium/high), and tags.
+#
+# Agents should consult the user before consuming paid quota unless the
+# user has explicitly authorized the tool.
+
+tools:
+
+  # ─── Infrastructure exposure ───────────────────────────────────────────
+
+  - name: "Shodan"
+    category: "infrastructure"
+    description: "Search engine for Internet-connected devices — banners, ports, services, vulnerabilities."
+    signup_url: "https://account.shodan.io/register"
+    pricing: "Free tier: 100 queries/month, 1 query/IP lookups. Lifetime API: $49 one-time. Enterprise: custom."
+    rate_limit: "1 req/sec (free); 100 req/min (paid)"
+    authentication: "API key as URL parameter"
+    endpoint: "https://api.shodan.io/shodan/host/{ip}?key={api_key}"
+    example_usage: |
+      curl -s "https://api.shodan.io/shodan/host/8.8.8.8?key=$SHODAN_KEY" | jq .
+    documentation: "https://developer.shodan.io/"
+    free_tier_value: "high"
+    tags: ["infrastructure", "iot", "ports", "vulns", "banners"]
+    notes: "Shodan InternetDB (free, no key) provides a subset of fields — see free-tools.yaml."
+
+  - name: "Censys"
+    category: "infrastructure"
+    description: "Internet-wide scanning data — hosts, certificates, ASNs. Strong on TLS certificate pivoting."
+    signup_url: "https://search.censys.io/register"
+    pricing: "Free tier: 250 queries/month. Paid: from $99/month."
+    rate_limit: "Varies by plan; free tier ~5 req/sec burst"
+    authentication: "Basic auth (API ID + Secret)"
+    endpoint: "https://search.censys.io/api/v2/hosts/{ip}"
+    example_usage: |
+      curl -s -u "$CENSYS_ID:$CENSYS_SECRET" \
+        "https://search.censys.io/api/v2/hosts/8.8.8.8" | jq .
+    documentation: "https://search.censys.io/api/v2/docs"
+    free_tier_value: "high"
+    tags: ["infrastructure", "certificates", "tls", "scanning"]
+
+  - name: "BinaryEdge"
+    category: "infrastructure"
+    description: "Internet exposure data — open ports, services, recent scan history per IP."
+    signup_url: "https://binaryedge.io/"
+    pricing: "Free tier: 250 queries/month. Paid: from €20/month."
+    rate_limit: "Varies by plan"
+    authentication: "API key in header"
+    endpoint: "https://api.binaryedge.io/v2/query/ip/{ip}"
+    example_usage: |
+      curl -s -H "X-Key: $BINARYEDGE_KEY" \
+        "https://api.binaryedge.io/v2/query/ip/8.8.8.8" | jq .
+    documentation: "https://docs.binaryedge.io/"
+    free_tier_value: "medium"
+    tags: ["infrastructure", "ports", "scanning"]
+
+  - name: "Onyphe"
+    category: "infrastructure"
+    description: "Cyber threat intelligence search engine — passive DNS, ports, vulnerabilities."
+    signup_url: "https://www.onyphe.io/"
+    pricing: "Free tier: limited. Paid: from €18/month."
+    rate_limit: "Varies by plan"
+    authentication: "API key in header"
+    endpoint: "https://www.onyphe.io/api/v2/simple/ip/{ip}"
+    example_usage: |
+      curl -s -H "apikey: $ONYPHE_KEY" \
+        "https://www.onyphe.io/api/v2/simple/ip/8.8.8.8" | jq .
+    documentation: "https://www.onyphe.io/docs/api"
+    free_tier_value: "low"
+    tags: ["infrastructure", "passive-dns", "threat-intel"]
+
+  # ─── Domain / DNS intelligence ─────────────────────────────────────────
+
+  - name: "SecurityTrails"
+    category: "domain-intel"
+    description: "Historical WHOIS, DNS, and subdomain data. Strong passive DNS pivot platform."
+    signup_url: "https://securitytrails.com/app/account"
+    pricing: "Free tier: 50 queries/month. Paid: from $49/month."
+    rate_limit: "Varies by plan"
+    authentication: "API key in header"
+    endpoint: "https://api.securitytrails.com/v1/history/{domain}/dns/a"
+    example_usage: |
+      curl -s -H "APIKey: $SECURITYTRAILS_KEY" \
+        "https://api.securitytrails.com/v1/history/example.com/dns/a" | jq .
+    documentation: "https://docs.securitytrails.com/"
+    free_tier_value: "medium"
+    tags: ["domain-intel", "passive-dns", "whois-history", "subdomains"]
+
+  - name: "DNSDB (Farsight Security)"
+    category: "domain-intel"
+    description: "Authoritative passive DNS database — decades of DNS history."
+    signup_url: "https://www.farsightsecurity.com/"
+    pricing: "Paid only; pricing on request. Some academic/community access available."
+    rate_limit: "Per contract"
+    authentication: "API key in header"
+    endpoint: "https://api.dnsdb.info/lookup/rrset/name/{name}/{type}"
+    example_usage: |
+      curl -s -H "X-API-Key: $DNSDB_KEY" \
+        "https://api.dnsdb.info/lookup/rrset/name/example.com/A" | jq .
+    documentation: "https://docs.dnsdb.info/"
+    free_tier_value: "n/a"
+    tags: ["domain-intel", "passive-dns", "history"]
+
+  - name: "PassiveTotal (RiskIQ)"
+    category: "domain-intel"
+    description: "Passive DNS, WHOIS history, and infrastructure pivoting. Acquired by Microsoft."
+    signup_url: "https://www.riskiq.com/"
+    pricing: "Free community tier with limited queries. Paid: enterprise."
+    rate_limit: "Varies"
+    authentication: "Basic auth (email + API key)"
+    endpoint: "https://api.passivetotal.org/v2/dns/passive"
+    example_usage: |
+      curl -s -u "$PT_EMAIL:$PT_KEY" \
+        "https://api.passivetotal.org/v2/dns/passive?domain=example.com" | jq .
+    documentation: "https://api.passivetotal.org/api/docs/"
+    free_tier_value: "medium"
+    tags: ["domain-intel", "passive-dns", "infrastructure"]
+
+  # ─── Threat intelligence ───────────────────────────────────────────────
+
+  - name: "VirusTotal (full API)"
+    category: "threat-intel"
+    description: "Aggregated detections for files, URLs, domains, IPs. Passive DNS, related URLs."
+    signup_url: "https://www.virustotal.com/gui/join-us"
+    pricing: "Free public API: 4 req/min, 500 req/day. Premium: from $189/year (VirusTotal Intelligence)."
+    rate_limit: "Free: 4 req/min, 500/day. Paid: per contract."
+    authentication: "API key in header (x-apikey)"
+    endpoint: "https://www.virustotal.com/api/v3/domains/{domain}"
+    example_usage: |
+      curl -s -H "x-apikey: $VT_API_KEY" \
+        "https://www.virustotal.com/api/v3/domains/example.com" | jq .
+    documentation: "https://developers.virustotal.com/"
+    free_tier_value: "high"
+    tags: ["threat-intel", "passive-dns", "detections"]
+
+  - name: "GreyNoise"
+    category: "threat-intel"
+    description: "Internet scanner attribution — distinguish targeted scanning from background noise."
+    signup_url: "https://www.greynoise.io/"
+    pricing: "Free community tier (10-day delayed data). Paid: enterprise."
+    rate_limit: "Varies"
+    authentication: "API key in header"
+    endpoint: "https://api.greynoise.io/v3/community/{ip}"
+    example_usage: |
+      curl -s -H "key: $GREYNOISE_KEY" \
+        "https://api.greynoise.io/v3/community/8.8.8.8" | jq .
+    documentation: "https://docs.greynoise.io/"
+    free_tier_value: "medium"
+    tags: ["threat-intel", "scanner-attribution"]
+
+  - name: "Pulsedive"
+    category: "threat-intel"
+    description: "Searchable threat intel — indicators, threat actors, related infrastructure."
+    signup_url: "https://pulsedive.com/"
+    pricing: "Free tier: 30 req/day. Paid: from $30/month."
+    rate_limit: "Varies"
+    authentication: "API key in URL parameter"
+    endpoint: "https://pulsedive.com/api/explore.php?q={indicator}&limit=50&pretty=1&key={api_key}"
+    example_usage: |
+      curl -s "https://pulsedive.com/api/explore.php?q=example.com&pretty=1&key=$PULSEDIVE_KEY" | jq .
+    documentation: "https://pulsedive.com/api/"
+    free_tier_value: "medium"
+    tags: ["threat-intel", "indicators"]
+
+  # ─── People / email intelligence ───────────────────────────────────────
+
+  - name: "Hunter.io"
+    category: "people-intel"
+    description: "Email finder and verifier. Returns email pattern for a domain and confirms email validity."
+    signup_url: "https://hunter.io/users/sign_up"
+    pricing: "Free tier: 25 searches/month, 50 verifications/month. Paid: from $34/month."
+    rate_limit: "Varies"
+    authentication: "API key in URL parameter"
+    endpoint: "https://api.hunter.io/v2/email-finder?domain={domain}&api_key={api_key}"
+    example_usage: |
+      curl -s "https://api.hunter.io/v2/email-finder?domain=example.com&api_key=$HUNTER_KEY" | jq .
+    documentation: "https://hunter.io/api"
+    free_tier_value: "medium"
+    tags: ["people-intel", "email", "enrichment"]
+
+  - name: "Snov.io"
+    category: "people-intel"
+    description: "Email finder and verifier. Alternative to Hunter with different database coverage."
+    signup_url: "https://snov.io/"
+    pricing: "Free tier: 50 credits/month. Paid: from $39/month."
+    rate_limit: "Varies"
+    authentication: "OAuth2 access token"
+    endpoint: "https://api.snov.io/v1/get-emails-from-url"
+    example_usage: |
+      # Generate access token first, then call endpoints.
+      curl -s -X POST "https://api.snov.io/v1/get-emails-from-url" \
+        -H "Authorization: Bearer $SNOV_TOKEN" \
+        -d '{"url":"https://example.com"}'
+    documentation: "https://snov.io/api"
+    free_tier_value: "medium"
+    tags: ["people-intel", "email"]
+
+  - name: "HaveIBeenPwned (full API)"
+    category: "breach-data"
+    description: "Full breach data — breach names, breach dates, compromised data classes, paste exposure."
+    signup_url: "https://haveibeenpwned.com/API/Key"
+    pricing: "$3.95/month for an API key. No free tier for breach-name retrieval."
+    rate_limit: "1 req/1.5s per IP"
+    authentication: "API key in header (hibp-api-key)"
+    endpoint: "https://haveibeenpwned.com/api/v3/breachedaccount/{email}"
+    example_usage: |
+      curl -s -H "hibp-api-key: $HIBP_KEY" -H "User-Agent: OSINT-Agent-Skills" \
+        "https://haveibeenpwned.com/api/v3/breachedaccount/user@example.com" | jq .
+    documentation: "https://haveibeenpwned.com/API/v3"
+    free_tier_value: "n/a"
+    tags: ["breach-data", "email"]
+    notes: "Never use breach credentials to attempt login. Retrieving breach names is OSINT; using credentials is intrusion."
+
+  - name: "DeHashed"
+    category: "breach-data"
+    description: "Breach data search — emails, usernames, passwords (hashed and some plaintext), phone numbers."
+    signup_url: "https://dehashed.com/register"
+    pricing: "Credit-based; from $4.99 for entry plan. Custom pricing for enterprise."
+    rate_limit: "Per credit balance"
+    authentication: "API key in header"
+    endpoint: "https://api.dehashed.com/search?query={query}"
+    example_usage: |
+      curl -s -H "api-key: $DEHASHED_KEY" \
+        "https://api.dehashed.com/search?query=email:user@example.com" | jq .
+    documentation: "https://dehashed.com/docs"
+    free_tier_value: "n/a"
+    tags: ["breach-data", "credentials"]
+    notes: "Same ethical constraints as HIBP — never use retrieved credentials for login attempts."
+
+  - name: "IntelX"
+    category: "breach-data"
+    description: "Search engine for breaches, leaks, pastes, and dark web sources. Strong historical coverage."
+    signup_url: "https://intelx.io/signup"
+    pricing: "Free tier: limited. Paid: from €20/month."
+    rate_limit: "Varies"
+    authentication: "API key in header"
+    endpoint: "https://2.intelx.io/phonebook/search"
+    example_usage: |
+      # See IntelX documentation; the API uses a POST-based search-then-fetch pattern.
+      curl -s -X POST "https://2.intelx.io/phonebook/search" \
+        -H "x-key: $INTELX_KEY" -H "Content-Type: application/json" \
+        -d '{"term":"example.com","maxresults":100,"media":0,"target":1}'
+    documentation: "https://github.com/IntelligenceX/SDK"
+    free_tier_value: "low"
+    tags: ["breach-data", "leaks", "dark-web"]
+
+  # ─── Phone intelligence ────────────────────────────────────────────────
+
+  - name: "Twilio Lookup API"
+    category: "phone-intel"
+    description: "Phone number lookup — carrier, line type (mobile/landline/voip), caller name (where available)."
+    signup_url: "https://www.twilio.com/try-twilio"
+    pricing: "Pay per lookup (~$0.005 for basic, $0.015 for caller name). Free trial credit available."
+    rate_limit: "Per account limits"
+    authentication: "Basic auth (Account SID + Auth Token)"
+    endpoint: "https://lookups.twilio.com/v1/PhoneNumbers/{phone_number}"
+    example_usage: |
+      curl -s -u "$TWILIO_SID:$TWILIO_TOKEN" \
+        "https://lookups.twilio.com/v1/PhoneNumbers/+15551234567" | jq .
+    documentation: "https://www.twilio.com/docs/lookup/api"
+    free_tier_value: "low"
+    tags: ["phone-intel", "carrier", "line-type"]
+
+  - name: "NumLookupAPI"
+    category: "phone-intel"
+    description: "Phone number validation and carrier lookup."
+    signup_url: "https://numlookupapi.com/"
+    pricing: "Free tier: 100 req/month. Paid: from $9.99/month."
+    rate_limit: "Varies"
+    authentication: "API key in URL parameter"
+    endpoint: "https://api.numlookupapi.com/v1/validate/{number}?apikey={api_key}"
+    example_usage: |
+      curl -s "https://api.numlookupapi.com/v1/validate/15551234567?apikey=$NUMLOOKUP_KEY" | jq .
+    documentation: "https://numlookupapi.com/docs"
+    free_tier_value: "low"
+    tags: ["phone-intel", "validation"]
+
+  # ─── Company intelligence ──────────────────────────────────────────────
+
+  - name: "Clearbit Enrichment"
+    category: "company-intel"
+    description: "Person and company enrichment from an email or domain — firmographics, employee count, tech stack."
+    signup_url: "https://clearbit.com/"
+    pricing: "Free tier: limited. Paid: enterprise."
+    rate_limit: "Per plan"
+    authentication: "API key in header"
+    endpoint: "https://person.clearbit.com/v2/people/find?email={email}"
+    example_usage: |
+      curl -s -H "Authorization: Bearer $CLEARBIT_KEY" \
+        "https://person.clearbit.com/v2/people/find?email=user@example.com" | jq .
+    documentation: "https://dashboard.clearbit.com/docs"
+    free_tier_value: "low"
+    tags: ["company-intel", "people-intel", "enrichment"]
+
+  - name: "FullContact"
+    category: "people-intel"
+    description: "Person enrichment from email, phone, or social handle. Returns social profiles and demographics."
+    signup_url: "https://www.fullcontact.com/developer/"
+    pricing: "Free tier: limited. Paid: enterprise."
+    rate_limit: "Per plan"
+    authentication: "API key in header"
+    endpoint: "https://api.fullcontact.com/v3/person.enrich"
+    example_usage: |
+      curl -s -X POST "https://api.fullcontact.com/v3/person.enrich" \
+        -H "Authorization: Bearer $FULLCONTACT_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{"email":"user@example.com"}' | jq .
+    documentation: "https://platform.fullcontact.com/docs"
+    free_tier_value: "low"
+    tags: ["people-intel", "enrichment", "social-media"]
+
+  - name: "OpenCorporates"
+    category: "company-intel"
+    description: "Largest open database of companies — filings, officers, registered addresses across 140+ jurisdictions."
+    signup_url: "https://opencorporates.com/users/sign_up"
+    pricing: "Free tier: 500 req/month. Paid: from $200/month."
+    rate_limit: "Varies"
+    authentication: "API token in URL parameter"
+    endpoint: "https://api.opencorporates.com/v0.4/companies/search?q={query}&api_token={token}"
+    example_usage: |
+      curl -s "https://api.opencorporates.com/v0.4/companies/search?q=Acme&api_token=$OC_TOKEN" | jq .
+    documentation: "https://api.opencorporates.com/"
+    free_tier_value: "high"
+    tags: ["company-intel", "filings", "officers"]
+
+  # ─── Facial recognition (high-sensitivity — require human review) ──────
+
+  - name: "PimEyes"
+    category: "facial-recognition"
+    description: "Reverse face search across the public web. HIGH SENSITIVITY — requires human review of results."
+    signup_url: "https://pimeyes.com/en/"
+    pricing: "Free: limited results. Paid: from €29.99/month for full URLs."
+    rate_limit: "Per plan"
+    authentication: "Web account; no public API. Some unofficial wrappers exist."
+    endpoint: "n/a (web interface)"
+    example_usage: |
+      # PimEyes has no official public API. Upload a face image via the web
+      # interface or use a scraping wrapper at your own legal risk.
+    documentation: "https://pimeyes.com/en/"
+    free_tier_value: "low"
+    tags: ["facial-recognition", "high-sensitivity"]
+    notes: "Facial recognition is jurisdiction-restricted. Review ethics/legal-frameworks.md before use. Treat all matches as Probable until verified."
+
+  - name: "FaceCheck.ID"
+    category: "facial-recognition"
+    description: "Reverse face search across social media and news. HIGH SENSITIVITY."
+    signup_url: "https://facecheck.id/"
+    pricing: "Free: limited previews. Paid: from $29/month for full URLs."
+    rate_limit: "Per plan"
+    authentication: "API key (paid)"
+    endpoint: "https://facecheck.id/api/search_pic"
+    example_usage: |
+      # Upload image, then poll for results. See FaceCheck.ID API docs.
+    documentation: "https://facecheck.id/api"
+    free_tier_value: "low"
+    tags: ["facial-recognition", "high-sensitivity"]
+    notes: "Same ethical and legal constraints as PimEyes."
+
+  # ─── Reverse image (paid tiers) ────────────────────────────────────────
+
+  - name: "TinEye API"
+    category: "reverse-image"
+    description: "Reverse image search — finds exact matches and edited versions of an image."
+    signup_url: "https://tineye.com/commerce/api"
+    pricing: "From $200/month for 5,000 searches."
+    rate_limit: "Per plan"
+    authentication: "API key + signed request"
+    endpoint: "https://api.tineye.com/rest/"
+    example_usage: |
+      # See TinEye API documentation for HMAC signature flow.
+    documentation: "https://services.tineye.com/developers/tineyeapi/"
+    free_tier_value: "n/a"
+    tags: ["reverse-image", "image-search"]
+
+  # ─── Geospatial ────────────────────────────────────────────────────────
+
+  - name: "Google Street View Static API"
+    category: "geoint"
+    description: "Retrieve Street View panoramas for a lat/long — useful for GEOINT landmark confirmation."
+    signup_url: "https://console.cloud.google.com/"
+    pricing: "Free tier: $200/month credit; Street View calls billed at $7/1000 after credit."
+    rate_limit: "Varies"
+    authentication: "API key in URL parameter"
+    endpoint: "https://maps.googleapis.com/maps/api/streetview?size=600x300&location={latlng}&key={api_key}"
+    example_usage: |
+      curl -s -o streetview.jpg \
+        "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=52.5163,13.3777&key=$GOOGLE_MAPS_KEY"
+    documentation: "https://developers.google.com/maps/documentation/streetview"
+    free_tier_value: "medium"
+    tags: ["geoint", "street-view", "geolocation"]
+
+  - name: "Sentinel Hub"
+    category: "geoint"
+    description: "Satellite imagery — Sentinel-1/2/3, Landsat. Useful for infrastructure monitoring over time."
+    signup_url: "https://www.sentinel-hub.com/"
+    pricing: "Free tier: 2 processing units per month. Paid: from €25/month."
+    rate_limit: "Varies"
+    authentication: "OAuth2"
+    endpoint: "https://services.sentinel-hub.com/api/v1/process"
+    example_usage: |
+      # See Sentinel Hub Process API documentation; requires OAuth token and JSON request body.
+    documentation: "https://docs.sentinel-hub.com/"
+    free_tier_value: "low"
+    tags: ["geoint", "satellite", "imagery"]
+
+  # ─── General enrichment ────────────────────────────────────────────────
+
+  - name: "RiskRecon (by Mastercard)"
+    category: "company-intel"
+    description: "Cyber risk ratings for companies — externally observable security posture."
+    signup_url: "https://www.riskrecon.com/"
+    pricing: "Enterprise; pricing on request."
+    rate_limit: "Per contract"
+    authentication: "API key"
+    endpoint: "n/a (per contract)"
+    example_usage: "n/a"
+    documentation: "https://www.riskrecon.com/"
+    free_tier_value: "n/a"
+    tags: ["company-intel", "security-posture"]
+
+# End of paid APIs registry. Add new APIs below this line.

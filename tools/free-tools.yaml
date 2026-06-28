@@ -1,0 +1,648 @@
+# OSINT Agent Skills — Free Tools Registry
+# Tools that require NO API key and NO payment. Use these first.
+# Each entry follows the schema documented in tools/README.md.
+#
+# Conventions:
+#   - endpoint placeholders use {var} syntax
+#   - all timestamps recorded by the agent should be ISO 8601 UTC
+#   - rate_limit "unlimited" still means "be reasonable — don't DoS a free service"
+
+tools:
+
+  # ─── DNS / Network infrastructure ──────────────────────────────────────
+
+  - name: "Google DNS over HTTPS"
+    category: "dns"
+    description: "Authoritative DNS record lookup via Google's public DoH resolver."
+    tool_type: "api"
+    endpoint: "https://dns.google/resolve?name={domain}&type={type}"
+    parameters:
+      domain: "target domain (e.g., example.com)"
+      type: "A, AAAA, MX, NS, TXT, CNAME, SOA, PTR, CAA, SRV"
+    free: true
+    auth_required: false
+    rate_limit: "high (no published limit; treat as soft-unlimited)"
+    example_usage: |
+      curl -s "https://dns.google/resolve?name=example.com&type=A" | jq .
+    output_format: "JSON (RFC 8484)"
+    integration_difficulty: "easy"
+    tags: ["dns", "infrastructure", "recon"]
+
+  - name: "Cloudflare DNS over HTTPS"
+    category: "dns"
+    description: "Authoritative DNS lookup via Cloudflare's 1.1.1.1 resolver."
+    tool_type: "api"
+    endpoint: "https://cloudflare-dns.com/dns-query?name={domain}&type={type}"
+    headers:
+      Accept: "application/dns-json"
+    parameters:
+      domain: "target domain"
+      type: "A, AAAA, MX, NS, TXT, CNAME, SOA, PTR, CAA, SRV"
+    free: true
+    rate_limit: "high"
+    example_usage: |
+      curl -s -H 'accept: application/dns-json' \
+        "https://cloudflare-dns.com/dns-query?name=example.com&type=MX"
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["dns", "infrastructure"]
+
+  - name: "Quad9 DNS over HTTPS"
+    category: "dns"
+    description: "Alternative DoH resolver; useful for cross-validating Google/Cloudflare results."
+    tool_type: "api"
+    endpoint: "https://dns.quad9.net:5053/dns-query?name={domain}&type={type}"
+    parameters:
+      domain: "target domain"
+      type: "standard RR types"
+    free: true
+    rate_limit: "high"
+    example_usage: |
+      curl -s -H 'accept: application/dns-json' \
+        "https://dns.quad9.net:5053/dns-query?name=example.com&type=A"
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["dns", "infrastructure", "cross-validation"]
+
+  # ─── WHOIS / Registration ──────────────────────────────────────────────
+
+  - name: "RDAP (IANA bootstrap)"
+    category: "whois"
+    description: "Modern replacement for WHOIS. Returns structured JSON registration data."
+    tool_type: "api"
+    endpoint: "https://rdap.org/domain/{domain}"
+    parameters:
+      domain: "target domain"
+    free: true
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "https://rdap.org/domain/example.com" | jq .
+    output_format: "JSON (RDAP)"
+    integration_difficulty: "easy"
+    tags: ["whois", "registration", "domain"]
+
+  - name: "IANA RDAP bootstrap (IP)"
+    category: "whois"
+    description: "RDAP lookup for an IP address — returns ASN, netname, country, abuse contact."
+    tool_type: "api"
+    endpoint: "https://rdap.org/ip/{ip}"
+    parameters:
+      ip: "target IPv4 or IPv6"
+    free: true
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "https://rdap.org/ip/8.8.8.8" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["whois", "ip", "asn"]
+
+  - name: "IANA RDAP bootstrap (autonomous system)"
+    category: "whois"
+    description: "RDAP lookup for an ASN — returns holder name, route prefixes, abuse contacts."
+    tool_type: "api"
+    endpoint: "https://rdap.org/autnum/{asn}"
+    parameters:
+      asn: "AS number (digits only or AS##### form)"
+    free: true
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "https://rdap.org/autnum/15169" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["whois", "asn", "routing"]
+
+  # ─── Certificate transparency ──────────────────────────────────────────
+
+  - name: "crt.sh"
+    category: "certificates"
+    description: "Search Certificate Transparency logs for certificates issued for a domain."
+    tool_type: "api"
+    endpoint: "https://crt.sh/?q={domain}&output=json"
+    parameters:
+      domain: "target domain (use %.example.com for subdomain wildcard)"
+    free: true
+    auth_required: false
+    rate_limit: "moderate (be polite; this is a free service)"
+    example_usage: |
+      curl -s "https://crt.sh/?q=%.example.com&output=json" | jq '.[].name_value' | sort -u
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["certificates", "subdomain-enumeration", "tls"]
+
+  # ─── Web archive ───────────────────────────────────────────────────────
+
+  - name: "Wayback CDX API"
+    category: "archive"
+    description: "Query the Internet Archive's index of historical snapshots for a URL."
+    tool_type: "api"
+    endpoint: "http://web.archive.org/cdx/search/cdx?url={url}&output=json&fl=timestamp,original,statuscode,mimetype&collapse=digest"
+    parameters:
+      url: "target URL or domain pattern (e.g., example.com/*)"
+    free: true
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "http://web.archive.org/cdx/search/cdx?url=example.com/*&output=json&collapse=digest" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["archive", "history", "wayback"]
+
+  - name: "Wayback Machine availability API"
+    category: "archive"
+    description: "Returns the closest archived snapshot to a given URL and timestamp."
+    tool_type: "api"
+    endpoint: "http://archive.org/wayback/available?url={url}&timestamp={timestamp}"
+    parameters:
+      url: "target URL"
+      timestamp: "YYYYMMDDhhmmss (optional)"
+    free: true
+    rate_limit: "high"
+    example_usage: |
+      curl -s "http://archive.org/wayback/available?url=example.com&timestamp=20200101" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["archive", "history"]
+
+  # ─── Infrastructure exposure (free tiers) ──────────────────────────────
+
+  - name: "Shodan InternetDB"
+    category: "infrastructure"
+    description: "Free, no-auth endpoint exposing the public Shodan profile of an IP."
+    tool_type: "api"
+    endpoint: "https://internetdb.shodan.io/{ip}"
+    parameters:
+      ip: "target IPv4"
+    free: true
+    auth_required: false
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "https://internetdb.shodan.io/8.8.8.8" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    notes: "Returns hostnames, open ports, vulns (CVE list), and tags. Less detailed than the paid Shodan API."
+    tags: ["infrastructure", "ports", "vulns", "shodan"]
+
+  - name: "HackerTarget API (free tier)"
+    category: "infrastructure"
+    description: "Free-tier endpoints for DNS lookups, reverse IP, and basic recon."
+    tool_type: "api"
+    endpoint: "https://api.hackertarget.com/{endpoint}?q={query}"
+    parameters:
+      endpoint: "dnslookup, reversedns, hostsearch, geoip, whois, etc."
+      query: "target domain or IP"
+    free: true
+    auth_required: false
+    rate_limit: "50 requests/day per IP (free tier)"
+    example_usage: |
+      curl -s "https://api.hackertarget.com/hostsearch/?q=example.com"
+    output_format: "plain text / CSV"
+    integration_difficulty: "easy"
+    tags: ["infrastructure", "dns", "recon"]
+
+  # ─── IP / ASN / Geolocation ────────────────────────────────────────────
+
+  - name: "ipinfo.io (free tier)"
+    category: "geolocation"
+    description: "Geolocation, ASN, and hosting metadata for an IP. Free tier: 50k req/month."
+    tool_type: "api"
+    endpoint: "https://ipinfo.io/{ip}/json"
+    parameters:
+      ip: "target IPv4 or IPv6"
+    free: true
+    auth_required: false
+    rate_limit: "50,000 requests/month (no token); higher with free token"
+    example_usage: |
+      curl -s "https://ipinfo.io/8.8.8.8/json" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["geolocation", "ip", "asn"]
+
+  - name: "RIPEstat"
+    category: "routing"
+    description: "Routing, ASN, and BGP metadata from the RIPE NCC."
+    tool_type: "api"
+    endpoint: "https://stat.ripe.net/data/{dataset}/data.json?resource={resource}"
+    parameters:
+      dataset: "asn-overview, routing, whois, abuse-contact-finder, etc."
+      resource: "IP, prefix, or ASN"
+    free: true
+    auth_required: false
+    rate_limit: "high"
+    example_usage: |
+      curl -s "https://stat.ripe.net/data/abuse-contact-finder/data.json?resource=8.8.8.8" | jq .
+    output_format: "JSON"
+    integration_difficulty: "medium"
+    tags: ["routing", "bgp", "asn"]
+
+  - name: "BGPview API"
+    category: "routing"
+    description: "Look up ASN details, peers, prefixes, and upstreams."
+    tool_type: "api"
+    endpoint: "https://api.bgpview.io/asn/{asn}"
+    parameters:
+      asn: "AS number (digits only)"
+    free: true
+    auth_required: false
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "https://api.bgpview.io/asn/15169" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["routing", "asn", "bgp"]
+
+  - name: "ipapi.co (free tier)"
+    category: "geolocation"
+    description: "IP geolocation with city-level resolution. Free tier: 30k req/month."
+    tool_type: "api"
+    endpoint: "https://ipapi.co/{ip}/json/"
+    parameters:
+      ip: "target IPv4"
+    free: true
+    auth_required: false
+    rate_limit: "30,000 requests/month (free)"
+    example_usage: |
+      curl -s "https://ipapi.co/8.8.8.8/json/" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["geolocation", "ip"]
+
+  # ─── GitHub / Code search ──────────────────────────────────────────────
+
+  - name: "GitHub REST API (unauthenticated)"
+    category: "code-search"
+    description: "Search public repositories, code, users, and commits. Rate limited without a token."
+    tool_type: "api"
+    endpoint: "https://api.github.com/search/{type}?q={query}"
+    parameters:
+      type: "repositories, code, users, commits, issues"
+      query: "search query (GitHub search syntax)"
+    free: true
+    auth_required: false
+    rate_limit: "10 search requests/min (unauthenticated); 30/min with free token"
+    example_usage: |
+      curl -s "https://api.github.com/search/code?q=example.com+filename:.env" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    notes: "Code search without a token is heavily restricted. Recommend registering a free OAuth token to lift limits."
+    tags: ["github", "code", "leaks"]
+
+  - name: "GitHub Events API"
+    category: "code-search"
+    description: "Public event stream — useful for pivoting from a GitHub user to their activity."
+    tool_type: "api"
+    endpoint: "https://api.github.com/users/{username}/events/public"
+    parameters:
+      username: "GitHub username"
+    free: true
+    auth_required: false
+    rate_limit: "60 req/hour (unauthenticated)"
+    example_usage: |
+      curl -s "https://api.github.com/users/torvalds/events/public" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["github", "activity", "pivoting"]
+
+  # ─── URL / threat intelligence (free) ──────────────────────────────────
+
+  - name: "urlscan.io (free tier)"
+    category: "threat-intel"
+    description: "Public scan results for a URL. Free tier: 100 scans/day for unauth, more with free token."
+    tool_type: "api"
+    endpoint: "https://urlscan.io/api/v1/search/?q={query}"
+    parameters:
+      query: "domain:example.com or ip:1.2.3.4 or page.url:\"https://example.com/path\""
+    free: true
+    auth_required: false
+    rate_limit: "100 scans/day unauth; 5000/day with free token"
+    example_usage: |
+      curl -s "https://urlscan.io/api/v1/search/?q=domain:example.com" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["threat-intel", "url", "scanning"]
+
+  - name: "VirusTotal public API (limited)"
+    category: "threat-intel"
+    description: "Free public API: 4 req/min, 500 req/day. Returns passive DNS, detections, related URLs."
+    tool_type: "api"
+    endpoint: "https://www.virustotal.com/api/v3/domains/{domain}"
+    headers:
+      x-apikey: "{free_api_key}"
+    parameters:
+      domain: "target domain"
+    free: true
+    auth_required: true   # free-tier key required
+    rate_limit: "4 req/min, 500 req/day (free tier)"
+    example_usage: |
+      curl -s -H "x-apikey: $VT_API_KEY" \
+        "https://www.virustotal.com/api/v3/domains/example.com" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    notes: "Listed here because the free tier is sufficient for many investigations; see apis.yaml for full listing."
+    tags: ["threat-intel", "domain", "passive-dns"]
+
+  # ─── Subdomain enumeration (free) ──────────────────────────────────────
+
+  - name: "crt.sh (subdomain enumeration)"
+    category: "subdomain-enum"
+    description: "Use the CT log search to enumerate subdomains of a target."
+    tool_type: "api"
+    endpoint: "https://crt.sh/?q=%.{domain}&output=json"
+    parameters:
+      domain: "target domain"
+    free: true
+    example_usage: |
+      curl -s "https://crt.sh/?q=%.example.com&output=json" \
+        | jq -r '.[].name_value' | tr ',' '\n' | sort -u
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["subdomain-enum", "certificates"]
+
+  - name: "AlienVault OTX (free)"
+    category: "threat-intel"
+    description: "Community threat intel — indicators, pulses, related domains."
+    tool_type: "api"
+    endpoint: "https://otx.alienvault.com/api/v1/indicators/{type}/{value}/general"
+    parameters:
+      type: "domain, ip, hostname, url, email, hash"
+      value: "indicator value"
+    free: true
+    auth_required: false   # registration lifts rate limits
+    rate_limit: "moderate (unauth); higher with free key"
+    example_usage: |
+      curl -s "https://otx.alienvault.com/api/v1/indicators/domain/example.com/general" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["threat-intel", "indicators"]
+
+  - name: "ThreatCrowd (legacy, but free)"
+    category: "threat-intel"
+    description: "Free threat intel API — related domains, IPs, emails. Data freshness varies."
+    tool_type: "api"
+    endpoint: "https://www.threatcrowd.org/searchApi/v2/{type}/report/?{type}={value}"
+    parameters:
+      type: "domain, ip, email, antivirus"
+      value: "indicator value"
+    free: true
+    example_usage: |
+      curl -s "https://www.threatcrowd.org/searchApi/v2/domain/report/?domain=example.com" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    notes: "Treat as a secondary source; cross-verify with OTX or urlscan."
+    tags: ["threat-intel", "passive-dns"]
+
+  # ─── Username / account enumeration (free) ─────────────────────────────
+
+  - name: "GitHub user lookup"
+    category: "username-enum"
+    description: "Verify a GitHub username exists and retrieve profile metadata."
+    tool_type: "api"
+    endpoint: "https://api.github.com/users/{username}"
+    parameters:
+      username: "GitHub username"
+    free: true
+    auth_required: false
+    rate_limit: "60 req/hour (unauth)"
+    example_usage: |
+      curl -s "https://api.github.com/users/torvalds" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["username-enum", "github", "pivoting"]
+
+  - name: "Gravatar avatar lookup"
+    category: "username-enum"
+    description: "Retrieve a Gravatar avatar from an email hash — useful for confirming account ownership."
+    tool_type: "api"
+    endpoint: "https://www.gravatar.com/{md5(email)}.json"
+    parameters:
+      md5_email: "MD5 hash of lowercased, trimmed email"
+    free: true
+    auth_required: false
+    example_usage: |
+      EMAIL="user@example.com"
+      HASH=$(echo -n "$EMAIL" | md5sum | awk '{print $1}')
+      curl -s "https://www.gravatar.com/${HASH}.json" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["username-enum", "avatar", "pivoting"]
+
+  # ─── Privacy / breach (free) ───────────────────────────────────────────
+
+  - name: "HaveIBeenPwned breaches (free, unauth)"
+    category: "breach-data"
+    description: "Check whether an email appears in any breach (boolean — paid key needed for breach details)."
+    tool_type: "api"
+    endpoint: "https://haveibeenpwned.com/api/v3/breachedaccount/{email}"
+    headers:
+      User-Agent: "OSINT-Agent-Skills"
+    parameters:
+      email: "target email"
+    free: true
+    auth_required: false   # historical free lookup; HIBP may require key for breach name listing
+    rate_limit: "1 req/1.5s per IP"
+    example_usage: |
+      curl -s -H "User-Agent: OSINT-Agent-Skills" \
+        "https://haveibeenpwned.com/api/v3/breachedaccount/user@example.com"
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    notes: "As of recent HIBP changes, breach-name retrieval requires an API key. Boolean status may still be free."
+    tags: ["breach-data", "email"]
+
+  - name: "HaveIBeenPwned password range"
+    category: "breach-data"
+    description: "k-Anonymity password breach check — send first 5 chars of SHA-1 hash, get list of matching suffixes."
+    tool_type: "api"
+    endpoint: "https://api.pwnedpasswords.com/range/{prefix}"
+    parameters:
+      prefix: "first 5 characters of uppercase SHA-1 hash of password"
+    free: true
+    auth_required: false
+    rate_limit: "moderate"
+    example_usage: |
+      PASSWORD="test"
+      HASH=$(echo -n "$PASSWORD" | sha1sum | awk '{print toupper($1)}')
+      curl -s "https://api.pwnedpasswords.com/range/${HASH:0:5}"
+    output_format: "plain text"
+    integration_difficulty: "easy"
+    notes: "Useful only for checking a specific password's breach exposure. Do not use to crack."
+    tags: ["breach-data", "passwords"]
+
+  # ─── Social media (free, public endpoints) ─────────────────────────────
+
+  - name: "Mastodon instance lookup"
+    category: "social-media"
+    description: "Look up a Mastodon user by handle across the fediverse."
+    tool_type: "api"
+    endpoint: "https://{instance}/api/v1/accounts/lookup?acct={handle}"
+    parameters:
+      instance: "Mastodon instance hostname"
+      handle: "user handle (without @)"
+    free: true
+    auth_required: false
+    example_usage: |
+      curl -s "https://mastodon.social/api/v1/accounts/lookup?acct=Gargron" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["social-media", "mastodon", "username-enum"]
+
+  # ─── Document / metadata (free) ────────────────────────────────────────
+
+  - name: "Wayback Save Page Now"
+    category: "archive"
+    description: "Trigger a snapshot of a URL into the Wayback Machine."
+    tool_type: "api"
+    endpoint: "https://web.archive.org/save/{url}"
+    parameters:
+      url: "URL to archive"
+    free: true
+    auth_required: false
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s -I "https://web.archive.org/save/https://example.com"
+    output_format: "HTTP headers (returns snapshot location)"
+    integration_difficulty: "easy"
+    tags: ["archive", "preservation"]
+
+  # ─── Metadata / headers ────────────────────────────────────────────────
+
+  - name: "HTTP headers probe"
+    category: "infrastructure"
+    description: "Retrieve HTTP response headers from a URL — reveals server tech, security headers, redirects."
+    tool_type: "api"
+    endpoint: "curl -sI {url}"
+    parameters:
+      url: "target URL"
+    free: true
+    example_usage: |
+      curl -sI https://example.com
+    output_format: "HTTP headers"
+    integration_difficulty: "easy"
+    tags: ["infrastructure", "headers", "fingerprinting"]
+
+  # ─── Geolocation (free) ────────────────────────────────────────────────
+
+  - name: "Nominatim (OpenStreetMap)"
+    category: "geolocation"
+    description: "Forward and reverse geocoding using OpenStreetMap data."
+    tool_type: "api"
+    endpoint: "https://nominatim.openstreetmap.org/search?q={query}&format=json"
+    parameters:
+      query: "address or place name"
+    free: true
+    auth_required: false
+    rate_limit: "1 req/sec (must send valid User-Agent and Referer)"
+    example_usage: |
+      curl -s -A "OSINT-Agent-Skills/1.0" \
+        "https://nominatim.openstreetmap.org/search?q=Brandenburg+Gate&format=json" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    notes: "Strict rate limit — single IP, 1 req/sec. Heavy use requires self-hosting."
+    tags: ["geolocation", "geoint", "geocoding"]
+
+  - name: "OpenStreetMap Overpass API"
+    category: "geolocation"
+    description: "Query OSM map features by tag — useful for GEOINT landmark identification."
+    tool_type: "api"
+    endpoint: "https://overpass-api.de/api/interpreter?data={query}"
+    parameters:
+      query: "Overpass QL query"
+    free: true
+    auth_required: false
+    rate_limit: "moderate (2 concurrent, 10000 req/day per IP)"
+    example_usage: |
+      curl -s --data-urlencode 'data=node["amenity"="cafe"](52.5,13.3,52.6,13.4);out;' \
+        https://overpass-api.de/api/interpreter | jq .
+    output_format: "JSON / XML"
+    integration_difficulty: "medium"
+    tags: ["geolocation", "geoint", "osm"]
+
+  # ─── Crypto (free) ─────────────────────────────────────────────────────
+
+  - name: "Blockchain.com API (Bitcoin)"
+    category: "cryptocurrency"
+    description: "Free Bitcoin address lookup — balance, transactions."
+    tool_type: "api"
+    endpoint: "https://blockchain.info/rawaddr/{address}"
+    parameters:
+      address: "Bitcoin address"
+    free: true
+    auth_required: false
+    rate_limit: "moderate"
+    example_usage: |
+      curl -s "https://blockchain.info/rawaddr/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["cryptocurrency", "bitcoin", "transactions"]
+
+  - name: "Blockchair (multi-chain, free tier)"
+    category: "cryptocurrency"
+    description: "Lookup for Bitcoin, Ethereum, and other chains. Free tier: 30 req/min."
+    tool_type: "api"
+    endpoint: "https://api.blockchair.com/{chain}/dashboards/address/{address}"
+    parameters:
+      chain: "bitcoin, ethereum, polygon, etc."
+      address: "wallet address"
+    free: true
+    auth_required: false
+    rate_limit: "30 req/min (free, no key)"
+    example_usage: |
+      curl -s "https://api.blockchair.com/bitcoin/dashboards/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["cryptocurrency", "bitcoin", "ethereum"]
+
+  - name: "Etherscan (free tier)"
+    category: "cryptocurrency"
+    description: "Ethereum address and transaction lookup. Free tier: 5 req/sec, 100k/day."
+    tool_type: "api"
+    endpoint: "https://api.etherscan.io/api?module=account&action=balance&address={address}&tag=latest&apikey={key}"
+    parameters:
+      address: "Ethereum address"
+      key: "free API key"
+    free: true
+    auth_required: true   # free key required
+    rate_limit: "5 req/sec, 100,000 req/day (free)"
+    example_usage: |
+      curl -s "https://api.etherscan.io/api?module=account&action=txlist&address=0x...&apikey=$ETHERSCAN_KEY" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["cryptocurrency", "ethereum"]
+
+  # ─── Misc utilities ────────────────────────────────────────────────────
+
+  - name: "Wikidata SPARQL"
+    category: "general"
+    description: "Query structured data about people, organizations, places."
+    tool_type: "api"
+    endpoint: "https://query.wikidata.org/sparql?format=json&query={sparql}"
+    parameters:
+      sparql: "URL-encoded SPARQL query"
+    free: true
+    auth_required: false
+    rate_limit: "moderate (must identify with User-Agent)"
+    example_usage: |
+      curl -s -G "https://query.wikidata.org/sparql" \
+        --data-urlencode "format=json" \
+        --data-urlencode 'query=SELECT ?item ?itemLabel WHERE { ?item wdt:P31 wd:Q5. SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } LIMIT 5' \
+        | jq .
+    output_format: "JSON"
+    integration_difficulty: "medium"
+    tags: ["general", "knowledge-graph", "structured-data"]
+
+  - name: "Wikipedia API"
+    category: "general"
+    description: "Retrieve article content, revisions, and user info from Wikipedia."
+    tool_type: "api"
+    endpoint: "https://{lang}.wikipedia.org/w/api.php?action=query&format=json&{params}"
+    parameters:
+      lang: "language code (en, es, fr, ...)"
+      params: "MediaWiki API parameters"
+    free: true
+    auth_required: false
+    rate_limit: "high"
+    example_usage: |
+      curl -s "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=revisions&titles=Open-source_intelligence&rvprop=content" | jq .
+    output_format: "JSON"
+    integration_difficulty: "easy"
+    tags: ["general", "wikipedia", "background"]
+
+# End of free tools registry. Add new free tools below this line,
+# preserving the YAML schema.
