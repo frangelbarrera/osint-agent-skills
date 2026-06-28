@@ -174,7 +174,7 @@ If an agent that has consumed this knowledge base fabricates a finding, that is 
 
 ## Attribution
 
-This repository distills and restructures methodology originally compiled in [OSINT-BIBLE](https://github.com/frangelbarrera/OSINT-BIBLE) by [Frangel RaÃºl Crespo Barrera](https://github.com/frangelbarrera). OSINT-BIBLE is a curated index of 426+ OSINT resources across 33 sections; `osint-agent-skills` adapts that material for autonomous agent consumption.
+This repository distills and restructures methodology originally compiled in [OSINT-BIBLE](https://github.com/frangelbarrera/OSINT-BIBLE) by [Frangel Raúl Crespo Barrera](https://github.com/frangelbarrera). OSINT-BIBLE is a curated index of 426+ OSINT resources across 33 sections; `osint-agent-skills` adapts that material for autonomous agent consumption.
 
 Case studies reference investigations originally published by Bellingcat, Mandiant, CrowdStrike, CISA, and other public-domain threat intelligence sources. Citations appear in each case study file.
 
