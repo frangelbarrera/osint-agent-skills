@@ -75,9 +75,15 @@ function fetchUrl(url, options) {
     if (parsed.hostname.indexOf("hunter.io") !== -1 && process.env.HUNTER_KEY) {
       reqOpts.path += (parsed.search ? "&" : "?") + "api_key=" + process.env.HUNTER_KEY;
     }
-    if (parsed.hostname.indexOf("haveibeenpwned.com") !== -1 && process.env.HIBP_KEY) {
-      reqOpts.headers["hibp-api-key"] = process.env.HIBP_KEY;
-      reqOpts.headers["User-Agent"] = "OSINT-Agent-Skills";
+    if (parsed.hostname.indexOf("haveibeenpwned.com") !== -1) {
+      // Per-call api_key (from the tool invocation args) takes precedence
+      // over the env var fallback. Both write to the same `hibp-api-key`
+      // header that HIBP's v3 API requires.
+      var hibpKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.HIBP_KEY;
+      if (hibpKey) {
+        reqOpts.headers["hibp-api-key"] = hibpKey;
+        reqOpts.headers["User-Agent"] = "OSINT-Agent-Skills";
+      }
     }
     if (parsed.hostname.indexOf("etherscan.io") !== -1 && process.env.ETHERSCAN_KEY) {
       reqOpts.path += (parsed.search ? "&" : "?") + "apikey=" + process.env.ETHERSCAN_KEY;
@@ -187,7 +193,7 @@ async function executeTool(toolName, args) {
     headers["Authorization"] = "token " + process.env.GITHUB_TOKEN;
   }
 
-  var response = await fetchUrl(endpoint, { headers: headers });
+  var response = await fetchUrl(endpoint, { headers: headers, args: args });
 
   // Try to parse JSON
   var parsed;
