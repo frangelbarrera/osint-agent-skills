@@ -4,6 +4,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: v1.0](https://img.shields.io/badge/Status-v1.4-blue.svg)](CHANGELOG.md)
+[![Stars](https://img.shields.io/github/stars/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/commits)
+[![Issues](https://img.shields.io/github/issues/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/issues)
+[![Repo Size](https://img.shields.io/github/repo-size/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills)
 
 ---
 
