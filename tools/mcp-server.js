@@ -12,7 +12,10 @@
  *
  * Environment:
  *   OSINT_TOOLS_REGISTRY  — path to mcp-tools.json (default: ./mcp-tools.json)
- *   API keys are read from the environment (SHODAN_KEY, VT_API_KEY, etc.)
+ *   API keys are read from the environment (SHODAN_KEY, VT_API_KEY, HIBP_KEY,
+ *     HUNTER_KEY, ETHERSCAN_KEY, SECURITYTRAILS_KEY, GITHUB_TOKEN).
+ *   OSINT_USER_AGENT      — overrides the default User-Agent sent on outbound
+ *     requests (OPSEC). Defaults preserve previous behavior.
  */
 
 "use strict";
@@ -22,6 +25,7 @@ const https = require("https");
 const http = require("http");
 const { URL } = require("url");
 const path = require("path");
+const net = require("net");
 
 // ── Load tool registry ──────────────────────────────────────────────────────
 
@@ -82,11 +86,19 @@ function fetchUrl(url, options) {
       var hibpKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.HIBP_KEY;
       if (hibpKey) {
         reqOpts.headers["hibp-api-key"] = hibpKey;
-        reqOpts.headers["User-Agent"] = "OSINT-Agent-Skills";
+        reqOpts.headers["User-Agent"] = process.env.OSINT_USER_AGENT || "OSINT-Agent-Skills";
       }
     }
     if (parsed.hostname.indexOf("etherscan.io") !== -1 && process.env.ETHERSCAN_KEY) {
       reqOpts.path += (parsed.search ? "&" : "?") + "apikey=" + process.env.ETHERSCAN_KEY;
+    }
+    if (parsed.hostname.indexOf("securitytrails.com") !== -1) {
+      // SecurityTrails uses an APIKey header (per official docs).
+      // Per-call api_key (from tool args) takes precedence over env var.
+      var stKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.SECURITYTRAILS_KEY;
+      if (stKey) {
+        reqOpts.headers["APIKey"] = stKey;
+      }
     }
 
     var req = lib.request(reqOpts, function(res) {
@@ -110,6 +122,57 @@ function fetchUrl(url, options) {
     if (options.body) req.write(options.body);
     req.end();
   });
+}
+
+// ── Input validation helpers ───────────────────────────────────────────────
+
+// Block IP literals and inet_aton shorthand forms that getaddrinfo() resolves
+// on Linux/glibc but net.isIP() does not recognize (e.g. 127.1, 0x7f000001,
+// 2130706433, 017700000001). See SSRF defense-in-depth for mastodon_user_lookup.
+function isValidPublicHostname(hostname) {
+  if (typeof hostname !== "string" || hostname.length === 0 || hostname.length > 253) return false;
+
+  // 1. Block standard IP literals (IPv4 dotted-quad, IPv6)
+  if (net.isIP(hostname) !== 0) return false;
+
+  // 2. Block inet_aton shorthand forms (decimal, hex, octal, dotted variants)
+  //    Per-pass: one leading octet + 0-3 dotted octets, each octet being
+  //    decimal, 0x-prefixed hex, or 0-prefixed octal.
+  if (/^(\d+|0x[0-9a-f]+|0[0-7]+)(\.(?:\d+|0x[0-9a-f]+|0[0-7]+)){0,3}$/i.test(hostname)) return false;
+
+  // 3. Block path/query/fragment separators and other dangerous characters
+  if (/[\/\\?#@:\s]/.test(hostname)) return false;
+
+  // 4. Block localhost and well-known metadata endpoints
+  var lower = hostname.toLowerCase();
+  if (lower === "localhost") return false;
+  if (lower === "metadata" || lower === "metadata.google.internal") return false;
+
+  // 5. Block magic DNS hostnames that resolve to loopback or private ranges
+  if (/\.(nip\.io|sslip\.io|xip\.io|localtest\.me)$/i.test(lower)) return false;
+
+  // 6. Block private-use TLDs often used for internal networks
+  if (/\.(internal|local|localhost|intranet|home|lan|corp|priv|example|test|invalid)$/i.test(lower)) return false;
+
+  // 7. Validate hostname format (letters, digits, dots, hyphens only)
+  if (!/^[a-zA-Z0-9]([a-zA-Z0-9.\-]*[a-zA-Z0-9])?$/.test(hostname)) return false;
+
+  return true;
+}
+
+// Redact sensitive fields from tool args before returning them in the response
+// payload. Prevents accidental API key leakage through the `query: args` field.
+var SENSITIVE_ARG_KEYS = /^(api[_-]?key|apikey|token|secret|password|hibp[_-]?key|shodan[_-]?key|vt[_-]?api[_-]?key|hunter[_-]?key|etherscan[_-]?key|securitytrails[_-]?key)$/i;
+
+function redactSensitiveArgs(args) {
+  if (!args || typeof args !== "object") return args;
+  var redacted = {};
+  for (var k in args) {
+    if (Object.prototype.hasOwnProperty.call(args, k)) {
+      redacted[k] = SENSITIVE_ARG_KEYS.test(k) ? (args[k] ? "[REDACTED]" : args[k]) : args[k];
+    }
+  }
+  return redacted;
 }
 
 // ── Tool execution ──────────────────────────────────────────────────────────
@@ -174,6 +237,12 @@ async function executeTool(toolName, args) {
     if (args.api_key) endpoint += "&apikey=" + args.api_key;
   }
   if (toolName === "mastodon_user_lookup") {
+    // SSRF defense: validate that args.instance is a public hostname. Rejects
+    // IP literals, inet_aton shorthand (127.1, 0x7f000001, ...), path/query
+    // injection, localhost, metadata endpoints, and magic DNS rebinding names.
+    if (!args.instance || !isValidPublicHostname(args.instance)) {
+      throw new Error("Invalid instance: must be a public hostname (no IPs, paths, or query strings)");
+    }
     endpoint = "https://" + args.instance + "/api/v1/accounts/lookup?acct=" + encodeURIComponent(args.handle);
   }
   if (toolName === "nominatim_geocode") {
@@ -185,7 +254,7 @@ async function executeTool(toolName, args) {
 
   // Set headers
   var headers = {};
-  headers["User-Agent"] = "OSINT-Agent-Skills-MCP/1.0";
+  headers["User-Agent"] = process.env.OSINT_USER_AGENT || "OSINT-Agent-Skills-MCP/1.0";
   if (endpoint.indexOf("cloudflare-dns.com") !== -1 || endpoint.indexOf("dns.quad9.net") !== -1) {
     headers["Accept"] = "application/dns-json";
   }
@@ -205,8 +274,8 @@ async function executeTool(toolName, args) {
 
   return {
     tool: toolName,
-    query: args,
-    endpoint: endpoint.replace(/key=[a-f0-9]+/gi, "key=REDACTED"),
+    query: redactSensitiveArgs(args),
+    endpoint: endpoint.replace(/([?&])(api[_-]?key|apikey|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED"),
     status: response.statusCode,
     timestamp: new Date().toISOString(),
     result: parsed,
