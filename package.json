@@ -1,8 +1,8 @@
 {
   "name": "@frangelbarrera/osint-agent-skills",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "mcpName": "io.github.frangelbarrera/osint-agent-skills",
-  "description": "OSINT Agent Skills — 23 MCP tools for autonomous OSINT investigation. DNS, WHOIS, CT logs, Shodan, breach data, geolocation, crypto tracing. Works with Claude Code, Cursor, any MCP client.",
+  "description": "OSINT Agent Skills — 24 MCP tools for autonomous OSINT investigation. DNS, WHOIS, CT logs, Shodan, breach data, geolocation, crypto tracing. Works with Claude Code, Cursor, any MCP client.",
   "main": "tools/mcp-server.js",
   "bin": {
     "osint-agent-skills": "tools/mcp-server.js"

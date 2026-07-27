@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+_Nothing yet._
+
+
+## [1.5.0] — 2026-07-27
+
+### Added
+
+- **Output integrity hashing** — every tool response now includes an `output_hash`
+  field: a sha256 over the canonical JSON form of `{tool, endpoint, status, result}`.
+  Downstream consumers (audit logs, report verifiers, external scripts) can use this
+  hash to confirm that any data attributed to a tool call was actually produced by
+  that tool call. Cross-language reproducibility documented in `mcp-server.js`.
+- **`verify_output_integrity` tool** — new local tool (no HTTP call) that takes a
+  claimed hash + the response payload subset and returns `{valid: true}` if the
+  recomputed hash matches, or `{valid: false, expected_hash, actual_hash}` otherwise.
+  Designed for downstream verifiers, not in-band LLM self-verification.
+
+### Security (backfilled from `main` between 1.4.1 and 1.5.0)
+
+- **SSRF defense in `mastodon_user_lookup`** — `args.instance` is now validated as a
+  public hostname. Rejects IP literals, `inet_aton` shorthand forms (`127.1`,
+  `0x7f000001`, `2130706433`, `017700000001`, etc.), path/query injection, localhost,
+  cloud metadata endpoints, and magic DNS rebinding names.
+- **API key redaction** — `api_key`, `token`, `secret`, and `password` fields are now
+  redacted from the `query` object echoed back in tool responses. The endpoint URL
+  redaction regex was widened to cover non-hex key values and to preserve the original
+  parameter name (`api_key=REDACTED`, `apikey=REDACTED`, `key=REDACTED`, etc.).
+- **SecurityTrails auth fix** — `securitytrails_history` now sends the `APIKey` header
+  (per-call `api_key` arg or `SECURITYTRAILS_KEY` env var). Previously the tool was
+  broken by design: the endpoint had no `{api_key}` placeholder and no header injection.
+- **OPSEC User-Agent override** — `OSINT_USER_AGENT` env var now overrides the default
+  `User-Agent` on outbound requests. Defaults preserve previous behavior.
+
+
 ## [1.4.0] — 2026-06-28
 
 ### Added
@@ -26,9 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scripts/check-stale-tools.ps1 and check-stale-tools.sh for automated scanning.
   .github/ISSUE_TEMPLATE/tool-stale.md for community reporting.
 
-## [Unreleased]
-
-_Nothing yet._
 
 ## [1.3.0] — 2026-06-27
 
@@ -70,6 +103,7 @@ _Nothing yet._
   note: the quick reference and test suite are discoverable via the standard
   directory structure.
 
+
 ## [1.2.0] — 2026-06-27
 
 ### Added
@@ -84,6 +118,7 @@ _Nothing yet._
 - `agent-config.yaml` — v1.2.0. Added SATs, threat actor, OPSEC references.
 - `system-prompt.md` — Phase 4b (SATs), attribution standard, OPSEC rules, threat actor protocol.
 
+
 ## [1.1.0] — 2026-06-27
 
 ### Added
@@ -97,6 +132,7 @@ _Nothing yet._
 
 - `agent-config.yaml` — v1.1.0. Added graph and timeline references.
 - `system-prompt.md` — graph + timeline mandatory in reports.
+
 
 ## [1.0.0] — 2026-06-27
 

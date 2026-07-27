@@ -530,6 +530,41 @@
         "auth_required": false,
         "tags": ["social-media", "mastodon", "username-enum"]
       }
+    },
+    {
+      "name": "verify_output_integrity",
+      "description": "Verify that a claimed tool output matches its declared sha256 hash. Use this to detect hallucinated or tampered data: pass the response payload (or its stable subset: tool, endpoint, status, result) and the hash that was reported alongside it. Returns { valid: true } if the recomputed hash matches, { valid: false, expected_hash, actual_hash } otherwise. Note: the hash is computed over the JSON-stringified form of { tool, endpoint, status, result } in that exact key order. This tool is for downstream verifiers (audit logs, report reviewers, external scripts), not for in-band self-verification by the LLM.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "The sha256 hash claimed to correspond to the tool output (64 hex chars)."
+          },
+          "tool": {
+            "type": "string",
+            "description": "The tool name from the original response."
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "The redacted endpoint URL from the original response."
+          },
+          "status": {
+            "type": "number",
+            "description": "The HTTP status code from the original response."
+          },
+          "result": {
+            "description": "The result payload from the original response (any type)."
+          }
+        },
+        "required": ["hash", "tool", "endpoint", "status", "result"]
+      },
+      "annotations": {
+        "endpoint": "local://verify_output_integrity",
+        "method": "LOCAL",
+        "auth_required": false,
+        "tags": ["anti-hallucination", "integrity", "verification"]
+      }
     }
   ],
   "metadata": {

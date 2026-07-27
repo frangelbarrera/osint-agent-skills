@@ -177,10 +177,56 @@ function redactSensitiveArgs(args) {
 
 // ── Tool execution ──────────────────────────────────────────────────────────
 
+// Compute a sha256 hash over the canonical JSON form of a tool output's stable
+// fields ({tool, endpoint, status, result}). Excludes `query` (which is input,
+// not output) and `timestamp` (which varies per call). The hash lets downstream
+// consumers — audit logs, report verifiers, external scripts — confirm that any
+// data attributed to a tool call was actually produced by that tool call.
+//
+// Canonical form: JSON.stringify with default V8 key ordering (insertion order).
+// Cross-language reproducibility: in Python use
+//   json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+// then hashlib.sha256(...).hexdigest().
+function computeOutputHash(response) {
+  var crypto = require("crypto");
+  var payload = {
+    tool: response.tool,
+    endpoint: response.endpoint,
+    status: response.status,
+    result: response.result,
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
 async function executeTool(toolName, args) {
   var tool = toolRegistry.tools.find(function(t) { return t.name === toolName; });
   if (!tool) {
     throw new Error("Unknown tool: " + toolName);
+  }
+
+  // Local tool: verify_output_integrity (no HTTP call, returns immediately).
+  if (toolName === "verify_output_integrity") {
+    var payload = {
+      tool: args.tool,
+      endpoint: args.endpoint,
+      status: args.status,
+      result: args.result,
+    };
+    var actualHash = require("crypto").createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+    var verifyResponse = {
+      tool: toolName,
+      query: redactSensitiveArgs(args),
+      endpoint: "local://verify_output_integrity",
+      status: 200,
+      timestamp: new Date().toISOString(),
+      result: {
+        valid: actualHash === args.hash,
+        expected_hash: args.hash,
+        actual_hash: actualHash,
+      },
+    };
+    verifyResponse.output_hash = computeOutputHash(verifyResponse);
+    return verifyResponse;
   }
 
   var ann = tool.annotations || {};
@@ -272,7 +318,7 @@ async function executeTool(toolName, args) {
     parsed = response.body;
   }
 
-  return {
+  var responseObject = {
     tool: toolName,
     query: redactSensitiveArgs(args),
     endpoint: endpoint.replace(/([?&])(api[_-]?key|apikey|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED"),
@@ -280,6 +326,8 @@ async function executeTool(toolName, args) {
     timestamp: new Date().toISOString(),
     result: parsed,
   };
+  responseObject.output_hash = computeOutputHash(responseObject);
+  return responseObject;
 }
 
 // ── MCP message handlers ────────────────────────────────────────────────────

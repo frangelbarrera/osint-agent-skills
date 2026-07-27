@@ -8,7 +8,7 @@ This directory catalogs every OSINT tool referenced by the OSINT Agent Skills kn
 |---|---|---|---|
 | `free-tools.yaml` | HTTP APIs that require no authentication | No | 30+ |
 | `apis.yaml` | HTTP APIs that require an API key or paid subscription | Yes | 25+ |
-| `mcp-tools.json` | MCP-format tool catalog for Claude Code, Cursor, and other MCP-compatible agents | Mixed | 22 |
+| `mcp-tools.json` | MCP-format tool catalog for Claude Code, Cursor, and other MCP-compatible agents | Mixed | 24 |
 | `cli-tools.yaml` | Local command-line tools an agent invokes as subprocesses | Mixed | 20+ |
 
 ## Tool selection protocol

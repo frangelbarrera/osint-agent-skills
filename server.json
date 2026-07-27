@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.frangelbarrera/osint-agent-skills",
-    "description": "OSINT MCP server — 23 tools: DNS, WHOIS, Shodan, breaches, GEOINT, crypto. Works with Claude Code.",
+    "description": "OSINT MCP server — 24 tools: DNS, WHOIS, Shodan, breaches, GEOINT, crypto, plus output-integrity verification. Works with Claude Code.",
   "repository": {
     "url": "https://github.com/frangelbarrera/osint-agent-skills",
     "source": "github"
   },
-  "version": "1.4.1",
+  "version": "1.5.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@frangelbarrera/osint-agent-skills",
-      "version": "1.4.1",
+      "version": "1.5.0",
       "transport": {
         "type": "stdio"
       }
@@ -40,6 +40,7 @@
     { "name": "nominatim_geocode", "description": "Forward geocode address via OpenStreetMap" },
     { "name": "blockchain_address_lookup", "description": "Bitcoin address transaction lookup" },
     { "name": "etherscan_address_lookup", "description": "Ethereum address transaction lookup" },
-    { "name": "mastodon_user_lookup", "description": "Mastodon user lookup across the fediverse" }
+    { "name": "mastodon_user_lookup", "description": "Mastodon user lookup across the fediverse" },
+    { "name": "verify_output_integrity", "description": "Verify a tool output hash matches its claimed value (anti-hallucination)" }
   ]
 }

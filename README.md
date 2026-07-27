@@ -3,7 +3,7 @@
 > A knowledge base that turns any autonomous AI agent into a senior OSINT analyst.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: v1.0](https://img.shields.io/badge/Status-v1.4-blue.svg)](CHANGELOG.md)
+[![Status: v1.0](https://img.shields.io/badge/Status-v1.5-blue.svg)](CHANGELOG.md)
 [![Stars](https://img.shields.io/github/stars/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/commits)
 [![Issues](https://img.shields.io/github/issues/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/issues)
@@ -172,6 +172,12 @@ This repository was built with one principle above all others: **agents that con
 The system prompt explicitly forbids inventing IP addresses, email addresses, usernames, dates, tool outputs, or confidence levels. Each finding in a report must cite a source. Each tool invocation must be real — if a tool failed or returned nothing, that is what gets reported.
 
 If an agent that has consumed this knowledge base fabricates a finding, that is a critical defect and should be reported as an issue. See [`ethics/anti-hallucination.md`](ethics/anti-hallucination.md) for the full rule set.
+
+### Output integrity hashing (v1.5.0+)
+
+Every tool response now includes an `output_hash` field — a sha256 over the canonical JSON form of `{tool, endpoint, status, result}`. This lets downstream verifiers (audit logs, report reviewers, external scripts) confirm that any data attributed to a tool call was actually produced by that tool call.
+
+The `verify_output_integrity` tool takes a claimed hash + the response payload subset and returns `{valid: true}` if the recomputed hash matches, or `{valid: false, expected_hash, actual_hash}` otherwise. Designed for downstream verifiers — not for in-band LLM self-verification (an LLM that can compute sha256 in its head could forge a matching pair).
 
 ---
 
