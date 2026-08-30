@@ -26,6 +26,7 @@ const http = require("http");
 const { URL } = require("url");
 const path = require("path");
 const net = require("net");
+const dns = require("dns");
 
 // ── Load tool registry ──────────────────────────────────────────────────────
 
@@ -68,14 +69,19 @@ function appendQueryParam(reqOpts, name, value) {
   reqOpts.path += (reqOpts.path.indexOf("?") !== -1 ? "&" : "?") + name + "=" + encodeURIComponent(value);
 }
 
+// Cap on response body size: these tools consume JSON APIs, so responses
+// are limited to a few MB.
+var MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+
 function fetchUrl(url, options) {
   options = options || {};
   return new Promise(function(resolve, reject) {
     var parsed = new URL(url);
     var lib = parsed.protocol === "https:" ? https : http;
 
+    function dispatch(connectHost) {
     var reqOpts = {
-      hostname: parsed.hostname,
+      hostname: connectHost,
       port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
       path: parsed.pathname + parsed.search,
       method: options.method || "GET",
@@ -83,16 +89,28 @@ function fetchUrl(url, options) {
       timeout: 30000,
     };
 
+    // When the connection is pinned to a pre-resolved IP, keep the original
+    // hostname for TLS SNI and the Host header so virtual hosting and
+    // certificate verification are unaffected.
+    if (connectHost !== parsed.hostname) {
+      reqOpts.servername = parsed.hostname;
+      reqOpts.headers["Host"] = parsed.hostname;
+    }
+
     // Inject API keys from environment based on endpoint. A per-call
     // api_key in the tool args always takes precedence over the env var
-    // (it is appended to the endpoint in executeTool), so the env fallback
-    // is skipped to avoid sending two different keys in one request.
-    if (isApiHost(parsed.hostname, "shodan.io") && process.env.SHODAN_KEY && !(options.args && options.args.api_key)) {
-      appendQueryParam(reqOpts, "key", process.env.SHODAN_KEY);
+    // fallback, so only one key is ever sent in a single request.
+    if (isApiHost(parsed.hostname, "shodan.io")) {
+      // Per-call api_key (from the tool invocation args) takes precedence
+      // over the env var fallback; only one key parameter is ever sent.
+      var shodanKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.SHODAN_KEY;
+      if (shodanKey) {
+        appendQueryParam(reqOpts, "key", shodanKey);
+      }
     }
     if (isApiHost(parsed.hostname, "virustotal.com")) {
-      // Per-call api_key (from the tool invocation args — required by the
-      // virustotal_domain_report schema) takes precedence over the env var.
+      // Per-call api_key (from the tool invocation args) takes precedence
+      // over the env var fallback.
       var vtKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.VT_API_KEY;
       if (vtKey) {
         reqOpts.headers["x-apikey"] = vtKey;
@@ -125,13 +143,41 @@ function fetchUrl(url, options) {
 
     var req = lib.request(reqOpts, function(res) {
       var data = "";
-      res.on("data", function(chunk) { data += chunk; });
+      var bytes = 0;
+      var finished = false;
+      // Reject oversized bodies up front when Content-Length is known.
+      var contentLength = parseInt(res.headers && res.headers["content-length"], 10);
+      if (!isNaN(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+        reject(new Error("Response too large: Content-Length " + contentLength + " exceeds " + MAX_RESPONSE_BYTES + " bytes"));
+        req.destroy();
+        return;
+      }
+      res.on("data", function(chunk) {
+        bytes += chunk.length;
+        if (bytes > MAX_RESPONSE_BYTES) {
+          reject(new Error("Response too large: exceeded " + MAX_RESPONSE_BYTES + " bytes"));
+          res.destroy();
+          return;
+        }
+        data += chunk;
+      });
       res.on("end", function() {
+        finished = true;
         resolve({
           statusCode: res.statusCode,
           headers: res.headers,
           body: data,
         });
+      });
+      // If the remote closes the connection before the body completes,
+      // settle with an error instead of waiting on a response that will
+      // never arrive.
+      res.on("aborted", function() {
+        reject(new Error("Response aborted by remote"));
+      });
+      res.on("error", reject);
+      res.on("close", function() {
+        if (!finished) reject(new Error("Response closed before completion"));
       });
     });
 
@@ -143,6 +189,27 @@ function fetchUrl(url, options) {
 
     if (options.body) req.write(options.body);
     req.end();
+    }
+
+    // For user-supplied hostnames, resolve DNS first: every resolved
+    // address must be public, and the connection is pinned to the
+    // validated IP for the whole request.
+    if (options.validateHost) {
+      dns.lookup(parsed.hostname, { all: true }, function(err, addresses) {
+        if (err) return reject(err);
+        if (!addresses || !addresses.length) {
+          return reject(new Error("Could not resolve host: " + parsed.hostname));
+        }
+        for (var i = 0; i < addresses.length; i++) {
+          if (!isPublicIp(addresses[i].address)) {
+            return reject(new Error("Invalid instance: " + parsed.hostname + " resolves to a non-public address (" + addresses[i].address + ")"));
+          }
+        }
+        dispatch(addresses[0].address);
+      });
+    } else {
+      dispatch(parsed.hostname);
+    }
   });
 }
 
@@ -180,6 +247,47 @@ function isValidPublicHostname(hostname) {
   if (!/^[a-zA-Z0-9]([a-zA-Z0-9.\-]*[a-zA-Z0-9])?$/.test(hostname)) return false;
 
   return true;
+}
+
+// Public-IP policy for connections to user-supplied hostnames: loopback,
+// private, link-local, CGNAT, unique-local, multicast and other reserved
+// ranges are rejected (see SSRF defense-in-depth for mastodon_user_lookup).
+var ipBlockList = null;
+function getIpBlockList() {
+  if (ipBlockList) return ipBlockList;
+  ipBlockList = new net.BlockList();
+  ipBlockList.addSubnet("0.0.0.0", 8, "ipv4");
+  ipBlockList.addSubnet("10.0.0.0", 8, "ipv4");
+  ipBlockList.addSubnet("100.64.0.0", 10, "ipv4");
+  ipBlockList.addSubnet("127.0.0.0", 8, "ipv4");
+  ipBlockList.addSubnet("169.254.0.0", 16, "ipv4");
+  ipBlockList.addSubnet("172.16.0.0", 12, "ipv4");
+  ipBlockList.addSubnet("192.0.0.0", 24, "ipv4");
+  ipBlockList.addSubnet("192.0.2.0", 24, "ipv4");
+  ipBlockList.addSubnet("192.168.0.0", 16, "ipv4");
+  ipBlockList.addSubnet("198.18.0.0", 15, "ipv4");
+  ipBlockList.addSubnet("198.51.100.0", 24, "ipv4");
+  ipBlockList.addSubnet("203.0.113.0", 24, "ipv4");
+  ipBlockList.addSubnet("224.0.0.0", 3, "ipv4"); // multicast + reserved
+  ipBlockList.addSubnet("::", 128, "ipv6");
+  ipBlockList.addSubnet("::1", 128, "ipv6");
+  ipBlockList.addSubnet("64:ff9b::", 96, "ipv6");
+  ipBlockList.addSubnet("2001:db8::", 32, "ipv6");
+  ipBlockList.addSubnet("2002::", 16, "ipv6");
+  ipBlockList.addSubnet("fc00::", 7, "ipv6");
+  ipBlockList.addSubnet("fe80::", 10, "ipv6");
+  ipBlockList.addSubnet("ff00::", 8, "ipv6");
+  return ipBlockList;
+}
+
+function isPublicIp(ip) {
+  ip = String(ip || "");
+  // An IPv4-mapped IPv6 address (::ffff:a.b.c.d) is routed as plain IPv4.
+  var mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) ip = mapped[1];
+  var family = net.isIP(ip);
+  if (family === 0) return false;
+  return !getIpBlockList().check(ip, family === 4 ? "ipv4" : "ipv6");
 }
 
 // Redact sensitive fields from tool args before returning them in the response
@@ -224,6 +332,24 @@ async function executeTool(toolName, args) {
   var tool = toolRegistry.tools.find(function(t) { return t.name === toolName; });
   if (!tool) {
     throw new Error("Unknown tool: " + toolName);
+  }
+
+  // Enforce the registry's input_schema before building any URL: apply
+  // property defaults and fail fast on missing required arguments with a
+  // clear local error.
+  var schema = tool.input_schema || {};
+  var schemaProps = schema.properties || {};
+  for (var defKey in schemaProps) {
+    if (Object.prototype.hasOwnProperty.call(schemaProps, defKey) &&
+        args[defKey] === undefined && schemaProps[defKey] && schemaProps[defKey].default !== undefined) {
+      args[defKey] = schemaProps[defKey].default;
+    }
+  }
+  var requiredProps = schema.required || [];
+  for (var reqIdx = 0; reqIdx < requiredProps.length; reqIdx++) {
+    if (args[requiredProps[reqIdx]] === undefined || args[requiredProps[reqIdx]] === null || args[requiredProps[reqIdx]] === "") {
+      throw new Error("Invalid arguments: missing required property '" + requiredProps[reqIdx] + "'");
+    }
   }
 
   // Local tool: verify_output_integrity (no HTTP call, returns immediately).
@@ -327,6 +453,13 @@ async function executeTool(toolName, args) {
     endpoint = "https://blockchain.info/rawaddr/" + encodeURIComponent(args.address);
   }
 
+  // An unresolved {placeholder} at this point means the call is missing an
+  // argument; return a local error.
+  var unresolved = endpoint.match(/\{[a-zA-Z0-9_]+\}/);
+  if (unresolved) {
+    throw new Error("Invalid arguments: missing value for endpoint parameter " + unresolved[0]);
+  }
+
   // Set headers
   var headers = {};
   headers["User-Agent"] = process.env.OSINT_USER_AGENT || "OSINT-Agent-Skills-MCP/1.0";
@@ -338,7 +471,11 @@ async function executeTool(toolName, args) {
     headers["Authorization"] = "token " + process.env.GITHUB_TOKEN;
   }
 
-  var response = await fetchUrl(endpoint, { headers: headers, args: args });
+  var fetchOpts = { headers: headers, args: args };
+  // User-supplied hostname: resolve and validate it before connecting.
+  if (toolName === "mastodon_user_lookup") fetchOpts.validateHost = true;
+
+  var response = await fetchUrl(endpoint, fetchOpts);
 
   // Try to parse JSON
   var parsed;
@@ -421,25 +558,30 @@ async function handleMessage(msg) {
   if (method === "tools/call") {
     pendingCalls++;
     try {
-      var result = await executeTool(params.name, params.arguments || {});
-      // HTTP-level errors (401/403/429/5xx, ...) are tool errors: mark
-      // isError so clients can react. 404 is exempt: for OSINT tools
-      // "not found" is a valid answer (e.g. hibp_breach_check 404 = email
-      // not breached, mastodon 404 = account does not exist).
-      var httpError = result && typeof result.status === "number" && result.status >= 400 && result.status !== 404;
-      send({
-        jsonrpc: "2.0",
-        id: id,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-          isError: httpError ? true : undefined,
-        },
-      });
+      await acquireCallSlot();
+      try {
+        var result = await executeTool(params.name, params.arguments || {});
+        // HTTP-level errors (401/403/429/5xx, ...) are tool errors: mark
+        // isError so clients can react. 404 is exempt: for OSINT tools
+        // "not found" is a valid answer (e.g. hibp_breach_check 404 = email
+        // not breached, mastodon 404 = account does not exist).
+        var httpError = result && typeof result.status === "number" && result.status >= 400 && result.status !== 404;
+        send({
+          jsonrpc: "2.0",
+          id: id,
+          result: {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+            isError: httpError ? true : undefined,
+          },
+        });
+      } finally {
+        releaseCallSlot();
+      }
     } catch (err) {
       send({
         jsonrpc: "2.0",
@@ -480,6 +622,30 @@ async function handleMessage(msg) {
 // In-flight tools/call counter: lets the server drain pending responses on
 // stdin EOF instead of exiting mid-request and losing them.
 var pendingCalls = 0;
+
+// Cap on simultaneous outbound tool calls; excess calls wait in a FIFO
+// queue.
+var MAX_CONCURRENT_CALLS = 8;
+var activeCalls = 0;
+var callQueue = [];
+
+function acquireCallSlot() {
+  return new Promise(function(resolve) {
+    function grant() {
+      activeCalls++;
+      resolve();
+    }
+    if (activeCalls < MAX_CONCURRENT_CALLS) grant();
+    else callQueue.push(grant);
+  });
+}
+
+function releaseCallSlot() {
+  activeCalls--;
+  if (callQueue.length > 0 && activeCalls < MAX_CONCURRENT_CALLS) {
+    callQueue.shift()();
+  }
+}
 
 var buffer = "";
 

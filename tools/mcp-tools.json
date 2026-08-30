@@ -354,7 +354,7 @@
             "description": "VirusTotal API key (free tier available)."
           }
         },
-        "required": ["domain", "api_key"]
+        "required": ["domain"]
       },
       "annotations": {
         "endpoint": "https://www.virustotal.com/api/v3/domains/{domain}",
@@ -379,10 +379,10 @@
             "description": "Shodan API key."
           }
         },
-        "required": ["ip", "api_key"]
+        "required": ["ip"]
       },
       "annotations": {
-        "endpoint": "https://api.shodan.io/shodan/host/{ip}?key={api_key}",
+        "endpoint": "https://api.shodan.io/shodan/host/{ip}",
         "method": "GET",
         "auth_required": true,
         "tags": ["infrastructure", "ports", "banners", "vulns"]
@@ -408,7 +408,7 @@
             "description": "SecurityTrails API key."
           }
         },
-        "required": ["domain", "api_key"]
+        "required": ["domain"]
       },
       "annotations": {
         "endpoint": "https://api.securitytrails.com/v1/history/{domain}/dns/{record_type}",
@@ -432,7 +432,7 @@
             "description": "Hunter.io API key."
           }
         },
-        "required": ["domain", "api_key"]
+        "required": ["domain"]
       },
       "annotations": {
         "endpoint": "https://api.hunter.io/v2/email-finder",
@@ -497,7 +497,7 @@
             "description": "Etherscan free API key."
           }
         },
-        "required": ["address", "api_key"]
+        "required": ["address"]
       },
       "annotations": {
         "endpoint": "https://api.etherscan.io/api",
