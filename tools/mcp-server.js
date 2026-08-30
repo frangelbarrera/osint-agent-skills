@@ -73,6 +73,12 @@ function appendQueryParam(reqOpts, name, value) {
 // are limited to a few MB.
 var MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 
+// Aggregate ceiling on response bodies received concurrently across calls.
+// Without it, MAX_CONCURRENT_CALLS in-flight responses can buffer up to
+// 40 MB (more once serialized) at the same time.
+var MAX_TOTAL_RESPONSE_BYTES = 32 * 1024 * 1024;
+var inflightResponseBytes = 0;
+
 function fetchUrl(url, options) {
   options = options || {};
   return new Promise(function(resolve, reject) {
@@ -145,16 +151,36 @@ function fetchUrl(url, options) {
       var data = "";
       var bytes = 0;
       var finished = false;
+      var countedBytes = 0;
+      var released = false;
+      // Give this response's share of the global in-flight budget back.
+      // Idempotent: every completion path (end, error, aborted, close) calls
+      // it, but only the first call has an effect.
+      function releaseInflightBytes() {
+        if (released) return;
+        released = true;
+        inflightResponseBytes -= countedBytes;
+      }
       // Reject oversized bodies up front when Content-Length is known.
       var contentLength = parseInt(res.headers && res.headers["content-length"], 10);
       if (!isNaN(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+        releaseInflightBytes();
         reject(new Error("Response too large: Content-Length " + contentLength + " exceeds " + MAX_RESPONSE_BYTES + " bytes"));
         req.destroy();
         return;
       }
       res.on("data", function(chunk) {
+        if (inflightResponseBytes + chunk.length > MAX_TOTAL_RESPONSE_BYTES) {
+          releaseInflightBytes();
+          reject(new Error("Response budget exceeded: " + inflightResponseBytes + " bytes already in flight across concurrent calls, retry when they complete"));
+          res.destroy();
+          return;
+        }
+        countedBytes += chunk.length;
+        inflightResponseBytes += chunk.length;
         bytes += chunk.length;
         if (bytes > MAX_RESPONSE_BYTES) {
+          releaseInflightBytes();
           reject(new Error("Response too large: exceeded " + MAX_RESPONSE_BYTES + " bytes"));
           res.destroy();
           return;
@@ -163,20 +189,30 @@ function fetchUrl(url, options) {
       });
       res.on("end", function() {
         finished = true;
+        releaseInflightBytes();
         resolve({
           statusCode: res.statusCode,
           headers: res.headers,
           body: data,
+          // Redirects are deliberately not followed. Surface the target URL
+          // for 3xx responses so callers (e.g. wayback_save snapshots) can
+          // use it instead of receiving an empty body.
+          location: res.statusCode >= 300 && res.statusCode < 400 && res.headers ? res.headers.location : undefined,
         });
       });
       // If the remote closes the connection before the body completes,
       // settle with an error instead of waiting on a response that will
       // never arrive.
       res.on("aborted", function() {
+        releaseInflightBytes();
         reject(new Error("Response aborted by remote"));
       });
-      res.on("error", reject);
+      res.on("error", function(err) {
+        releaseInflightBytes();
+        reject(err);
+      });
       res.on("close", function() {
+        releaseInflightBytes();
         if (!finished) reject(new Error("Response closed before completion"));
       });
     });
@@ -537,6 +573,14 @@ async function executeTool(toolName, args) {
     result: parsed,
   };
 
+  // For 3xx responses the body is usually empty and the redirect target is
+  // the actual payload (e.g. a wayback_save snapshot URL). Apply the same
+  // query-parameter redaction used for endpoints, since some APIs echo the
+  // key back inside the Location header.
+  if (response.location) {
+    responseObject.redirect = response.location.replace(/([?&])(api[_-]?key|apikey|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED");
+  }
+
   // Surface rate-limit state from response headers so agents and harnesses
   // can back off BEFORE crossing a limit. GitHub sends x-ratelimit-* on every
   // response; many APIs send Retry-After when throttling.
@@ -670,19 +714,25 @@ async function handleMessage(msg) {
 var pendingCalls = 0;
 
 // Cap on simultaneous outbound tool calls; excess calls wait in a FIFO
-// queue.
+// queue. The queue itself is capped too: beyond MAX_QUEUED_CALLS, new calls
+// fail fast with a visible error instead of piling up unboundedly.
 var MAX_CONCURRENT_CALLS = 8;
+var MAX_QUEUED_CALLS = 64;
 var activeCalls = 0;
 var callQueue = [];
 
 function acquireCallSlot() {
-  return new Promise(function(resolve) {
+  return new Promise(function(resolve, reject) {
     function grant() {
       activeCalls++;
       resolve();
     }
     if (activeCalls < MAX_CONCURRENT_CALLS) grant();
-    else callQueue.push(grant);
+    else if (callQueue.length >= MAX_QUEUED_CALLS) {
+      reject(new Error("Server busy: " + callQueue.length + " tool calls already queued, retry after in-flight calls complete"));
+    } else {
+      callQueue.push(grant);
+    }
   });
 }
 
