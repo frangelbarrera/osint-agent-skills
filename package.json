@@ -8,7 +8,8 @@
     "osint-agent-skills": "tools/mcp-server.js"
   },
   "scripts": {
-    "start": "node tools/mcp-server.js"
+    "start": "node tools/mcp-server.js",
+    "test": "node --test tests/server.test.js"
   },
   "keywords": [
     "mcp",
