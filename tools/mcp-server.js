@@ -755,6 +755,13 @@ process.stdin.on("data", function(chunk) {
     if (!line) continue;
     try {
       var msg = JSON.parse(line);
+      // JSON-RPC messages are objects. Anything else (null, a bare number or
+      // string) cannot carry a method or id, so log it and move on instead
+      // of crashing on a property read.
+      if (msg === null || typeof msg !== "object") {
+        process.stderr.write("[osint-agent-skills] Ignoring non-object message\n");
+        continue;
+      }
       handleMessage(msg).catch(function(err) {
         process.stderr.write("[osint-agent-skills] Error handling message: " + err.message + "\n");
         if (msg.id !== undefined && msg.id !== null) error(msg.id, -32603, err.message);
