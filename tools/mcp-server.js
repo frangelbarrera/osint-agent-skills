@@ -50,7 +50,7 @@ function send(msg) {
 }
 
 function error(id, code, message) {
-  send({ jsonrpc: "2.0", id: id || null, error: { code, message } });
+  send({ jsonrpc: "2.0", id: id === undefined ? null : id, error: { code, message } });
 }
 
 // ── HTTP fetch helper ───────────────────────────────────────────────────────
@@ -392,6 +392,11 @@ async function executeTool(toolName, args) {
 
   // Local tool: verify_output_integrity (no HTTP call, returns immediately).
   if (toolName === "verify_output_integrity") {
+    // A hash that is not a 64-character lowercase hex digest can never match
+    // a sha256 output; reject it instead of reporting a misleading valid:false.
+    if (!/^[a-f0-9]{64}$/.test(args.hash)) {
+      throw new Error("Invalid arguments: hash must be a 64-character lowercase hex string");
+    }
     var payload = {
       tool: args.tool,
       endpoint: args.endpoint,
@@ -554,6 +559,15 @@ async function handleMessage(msg) {
   var method = msg.method;
   var params = msg.params || {};
 
+  if (method === "initialized") {
+    return; // Always a notification, never a response
+  }
+
+  // JSON-RPC notifications carry no id and never receive a response.
+  // Everything past this point is a request, where any id (including 0)
+  // must be echoed back verbatim.
+  if (id === undefined || id === null) return;
+
   if (method === "initialize") {
     send({
       jsonrpc: "2.0",
@@ -570,10 +584,6 @@ async function handleMessage(msg) {
       },
     });
     return;
-  }
-
-  if (method === "initialized") {
-    return; // Notification, no response
   }
 
   if (method === "tools/list") {
@@ -650,9 +660,7 @@ async function handleMessage(msg) {
     return;
   }
 
-  if (id) {
-    error(id, -32601, "Method not found: " + method);
-  }
+  error(id, -32601, "Method not found: " + method);
 }
 
 // ── Main loop ───────────────────────────────────────────────────────────────
@@ -699,7 +707,7 @@ process.stdin.on("data", function(chunk) {
       var msg = JSON.parse(line);
       handleMessage(msg).catch(function(err) {
         process.stderr.write("[osint-agent-skills] Error handling message: " + err.message + "\n");
-        if (msg.id) error(msg.id, -32603, err.message);
+        if (msg.id !== undefined && msg.id !== null) error(msg.id, -32603, err.message);
       });
     } catch (err) {
       process.stderr.write("[osint-agent-skills] JSON parse error: " + err.message + "\n");
