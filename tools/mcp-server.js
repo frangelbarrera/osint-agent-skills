@@ -54,6 +54,20 @@ function error(id, code, message) {
 
 // ── HTTP fetch helper ───────────────────────────────────────────────────────
 
+// Exact API-host matching: a key may only be attached when the request
+// hostname is the API host itself or a direct subdomain of it.
+function isApiHost(hostname, base) {
+  var h = String(hostname || "").toLowerCase();
+  var b = String(base || "").toLowerCase();
+  // h.length > b.length + 1 rejects the empty-label ".shodan.io" form.
+  return h === b || (h.length > b.length + 1 && h.slice(-(b.length + 1)) === "." + b);
+}
+
+// Append an encoded query parameter to reqOpts.path.
+function appendQueryParam(reqOpts, name, value) {
+  reqOpts.path += (reqOpts.path.indexOf("?") !== -1 ? "&" : "?") + name + "=" + encodeURIComponent(value);
+}
+
 function fetchUrl(url, options) {
   options = options || {};
   return new Promise(function(resolve, reject) {
@@ -69,17 +83,25 @@ function fetchUrl(url, options) {
       timeout: 30000,
     };
 
-    // Inject API keys from environment based on endpoint
-    if (parsed.hostname.indexOf("shodan.io") !== -1 && process.env.SHODAN_KEY) {
-      reqOpts.path += (parsed.search ? "&" : "?") + "key=" + process.env.SHODAN_KEY;
+    // Inject API keys from environment based on endpoint. A per-call
+    // api_key in the tool args always takes precedence over the env var
+    // (it is appended to the endpoint in executeTool), so the env fallback
+    // is skipped to avoid sending two different keys in one request.
+    if (isApiHost(parsed.hostname, "shodan.io") && process.env.SHODAN_KEY && !(options.args && options.args.api_key)) {
+      appendQueryParam(reqOpts, "key", process.env.SHODAN_KEY);
     }
-    if (parsed.hostname.indexOf("virustotal.com") !== -1 && process.env.VT_API_KEY) {
-      reqOpts.headers["x-apikey"] = process.env.VT_API_KEY;
+    if (isApiHost(parsed.hostname, "virustotal.com")) {
+      // Per-call api_key (from the tool invocation args — required by the
+      // virustotal_domain_report schema) takes precedence over the env var.
+      var vtKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.VT_API_KEY;
+      if (vtKey) {
+        reqOpts.headers["x-apikey"] = vtKey;
+      }
     }
-    if (parsed.hostname.indexOf("hunter.io") !== -1 && process.env.HUNTER_KEY) {
-      reqOpts.path += (parsed.search ? "&" : "?") + "api_key=" + process.env.HUNTER_KEY;
+    if (isApiHost(parsed.hostname, "hunter.io") && process.env.HUNTER_KEY && !(options.args && options.args.api_key)) {
+      appendQueryParam(reqOpts, "api_key", process.env.HUNTER_KEY);
     }
-    if (parsed.hostname.indexOf("haveibeenpwned.com") !== -1) {
+    if (isApiHost(parsed.hostname, "haveibeenpwned.com")) {
       // Per-call api_key (from the tool invocation args) takes precedence
       // over the env var fallback. Both write to the same `hibp-api-key`
       // header that HIBP's v3 API requires.
@@ -89,10 +111,10 @@ function fetchUrl(url, options) {
         reqOpts.headers["User-Agent"] = process.env.OSINT_USER_AGENT || "OSINT-Agent-Skills";
       }
     }
-    if (parsed.hostname.indexOf("etherscan.io") !== -1 && process.env.ETHERSCAN_KEY) {
-      reqOpts.path += (parsed.search ? "&" : "?") + "apikey=" + process.env.ETHERSCAN_KEY;
+    if (isApiHost(parsed.hostname, "etherscan.io") && process.env.ETHERSCAN_KEY && !(options.args && options.args.api_key)) {
+      appendQueryParam(reqOpts, "apikey", process.env.ETHERSCAN_KEY);
     }
-    if (parsed.hostname.indexOf("securitytrails.com") !== -1) {
+    if (isApiHost(parsed.hostname, "securitytrails.com")) {
       // SecurityTrails uses an APIKey header (per official docs).
       // Per-call api_key (from tool args) takes precedence over env var.
       var stKey = (options.args && options.args.api_key) ? options.args.api_key : process.env.SECURITYTRAILS_KEY;
@@ -252,11 +274,18 @@ async function executeTool(toolName, args) {
     params.set("collapse", args.collapse || "digest");
     if (args.from) params.set("from", args.from);
     if (args.to) params.set("to", args.to);
-    endpoint = "http://web.archive.org/cdx/search/cdx?" + params.toString();
+    endpoint = "https://web.archive.org/cdx/search/cdx?" + params.toString();
   }
 
   if (toolName === "wayback_save") {
-    endpoint = "https://web.archive.org/save/" + args.url;
+    // The save target is an absolute http(s) URL appended as a path segment.
+    // Requiring the scheme prevents path traversal ("../../..") and query
+    // injection into the archive.org path.
+    var saveUrl = String(args.url || "");
+    if (!/^https?:\/\/[^\s"'<>\\]+$/i.test(saveUrl)) {
+      throw new Error("Invalid url for wayback_save: must be an absolute http(s) URL");
+    }
+    endpoint = "https://web.archive.org/save/" + saveUrl;
   }
   if (toolName === "github_code_search") {
     endpoint = "https://api.github.com/search/code?q=" + encodeURIComponent(args.query);
@@ -265,7 +294,7 @@ async function executeTool(toolName, args) {
     endpoint = "https://urlscan.io/api/v1/search/?q=" + encodeURIComponent(args.query);
   }
   if (toolName === "alienvault_otx_lookup") {
-    endpoint = "https://otx.alienvault.com/api/v1/indicators/" + args.indicator_type + "/" + encodeURIComponent(args.value) + "/general";
+    endpoint = "https://otx.alienvault.com/api/v1/indicators/" + encodeURIComponent(args.indicator_type) + "/" + encodeURIComponent(args.value) + "/general";
   }
   if (toolName === "hibp_breach_check") {
     endpoint = "https://haveibeenpwned.com/api/v3/breachedaccount/" + encodeURIComponent(args.email);
@@ -276,11 +305,11 @@ async function executeTool(toolName, args) {
   }
   if (toolName === "hunter_email_finder") {
     endpoint = "https://api.hunter.io/v2/email-finder?domain=" + encodeURIComponent(args.domain);
-    if (args.api_key) endpoint += "&api_key=" + args.api_key;
+    if (args.api_key) endpoint += "&api_key=" + encodeURIComponent(args.api_key);
   }
   if (toolName === "etherscan_address_lookup") {
     endpoint = "https://api.etherscan.io/api?module=account&action=txlist&address=" + encodeURIComponent(args.address) + "&sort=desc";
-    if (args.api_key) endpoint += "&apikey=" + args.api_key;
+    if (args.api_key) endpoint += "&apikey=" + encodeURIComponent(args.api_key);
   }
   if (toolName === "mastodon_user_lookup") {
     // SSRF defense: validate that args.instance is a public hostname. Rejects
@@ -304,7 +333,8 @@ async function executeTool(toolName, args) {
   if (endpoint.indexOf("cloudflare-dns.com") !== -1 || endpoint.indexOf("dns.quad9.net") !== -1) {
     headers["Accept"] = "application/dns-json";
   }
-  if (endpoint.indexOf("api.github.com") !== -1 && process.env.GITHUB_TOKEN) {
+  // GITHUB_TOKEN is only sent when the request hostname is api.github.com itself.
+  if (isApiHost(new URL(endpoint).hostname, "api.github.com") && process.env.GITHUB_TOKEN) {
     headers["Authorization"] = "token " + process.env.GITHUB_TOKEN;
   }
 
@@ -326,6 +356,18 @@ async function executeTool(toolName, args) {
     timestamp: new Date().toISOString(),
     result: parsed,
   };
+
+  // Surface rate-limit state from response headers so agents and harnesses
+  // can back off BEFORE crossing a limit. GitHub sends x-ratelimit-* on every
+  // response; many APIs send Retry-After when throttling.
+  var rl = {};
+  if (response.headers) {
+    if (response.headers["retry-after"]) rl.retry_after = response.headers["retry-after"];
+    if (response.headers["x-ratelimit-remaining"]) rl.remaining = response.headers["x-ratelimit-remaining"];
+    if (response.headers["x-ratelimit-reset"]) rl.reset = response.headers["x-ratelimit-reset"];
+  }
+  if (Object.keys(rl).length) responseObject.rate_limit = rl;
+
   responseObject.output_hash = computeOutputHash(responseObject);
   return responseObject;
 }
@@ -377,8 +419,14 @@ async function handleMessage(msg) {
   }
 
   if (method === "tools/call") {
+    pendingCalls++;
     try {
       var result = await executeTool(params.name, params.arguments || {});
+      // HTTP-level errors (401/403/429/5xx, ...) are tool errors: mark
+      // isError so clients can react. 404 is exempt: for OSINT tools
+      // "not found" is a valid answer (e.g. hibp_breach_check 404 = email
+      // not breached, mastodon 404 = account does not exist).
+      var httpError = result && typeof result.status === "number" && result.status >= 400 && result.status !== 404;
       send({
         jsonrpc: "2.0",
         id: id,
@@ -389,6 +437,7 @@ async function handleMessage(msg) {
               text: JSON.stringify(result, null, 2),
             },
           ],
+          isError: httpError ? true : undefined,
         },
       });
     } catch (err) {
@@ -410,6 +459,8 @@ async function handleMessage(msg) {
           isError: true,
         },
       });
+    } finally {
+      pendingCalls--;
     }
     return;
   }
@@ -425,6 +476,10 @@ async function handleMessage(msg) {
 }
 
 // ── Main loop ───────────────────────────────────────────────────────────────
+
+// In-flight tools/call counter: lets the server drain pending responses on
+// stdin EOF instead of exiting mid-request and losing them.
+var pendingCalls = 0;
 
 var buffer = "";
 
@@ -449,7 +504,27 @@ process.stdin.on("data", function(chunk) {
 });
 
 process.stdin.on("end", function() {
-  process.exit(0);
+  // Drain in-flight tool calls before exiting so responses are not lost.
+  // Hard deadline: a stalled response can outlive the 30s timeout, so
+  // never hang forever on drain.
+  var drainDeadline = Date.now() + 60000;
+  (function exitWhenDrained() {
+    if (pendingCalls <= 0 || Date.now() > drainDeadline) {
+      // Flush whatever is still buffered in stdout before exiting,
+      // otherwise a large in-flight response can be truncated.
+      process.stdout.write("", function () { process.exit(0); });
+      return;
+    }
+    setTimeout(exitWhenDrained, 25);
+  })();
+});
+
+// If the client closes our stdout while a response write is in flight (e.g.
+// the agent process was killed), the write fails with EPIPE and would crash
+// the server with an unhandled 'error' event. Exit cleanly instead.
+process.stdout.on("error", function(err) {
+  if (err && err.code === "EPIPE") process.exit(0);
+  throw err;
 });
 
 process.stderr.write("[osint-agent-skills] MCP server started. Loading " + toolRegistry.tools.length + " tools.\n");
