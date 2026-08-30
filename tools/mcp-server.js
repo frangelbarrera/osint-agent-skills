@@ -294,12 +294,27 @@ function isPublicIp(ip) {
 // payload. Prevents accidental API key leakage through the `query: args` field.
 var SENSITIVE_ARG_KEYS = /^(api[_-]?key|apikey|token|secret|password|hibp[_-]?key|shodan[_-]?key|vt[_-]?api[_-]?key|hunter[_-]?key|etherscan[_-]?key|securitytrails[_-]?key)$/i;
 
-function redactSensitiveArgs(args) {
-  if (!args || typeof args !== "object") return args;
+var MAX_REDACT_DEPTH = 6;
+
+// Sensitive keys are redacted at every nesting level, not just the top one,
+// so a key buried inside an object or array argument cannot be echoed back
+// in a response payload. Recursion is depth-capped to keep the cost bounded.
+function redactSensitiveArgs(value, depth) {
+  depth = depth || 0;
+  if (Array.isArray(value)) {
+    if (depth >= MAX_REDACT_DEPTH) return "[DEPTH_LIMIT]";
+    return value.map(function (item) { return redactSensitiveArgs(item, depth + 1); });
+  }
+  if (!value || typeof value !== "object") return value;
+  if (depth >= MAX_REDACT_DEPTH) return "[DEPTH_LIMIT]";
   var redacted = {};
-  for (var k in args) {
-    if (Object.prototype.hasOwnProperty.call(args, k)) {
-      redacted[k] = SENSITIVE_ARG_KEYS.test(k) ? (args[k] ? "[REDACTED]" : args[k]) : args[k];
+  for (var k in value) {
+    if (Object.prototype.hasOwnProperty.call(value, k)) {
+      if (SENSITIVE_ARG_KEYS.test(k)) {
+        redacted[k] = value[k] ? "[REDACTED]" : value[k];
+      } else {
+        redacted[k] = redactSensitiveArgs(value[k], depth + 1);
+      }
     }
   }
   return redacted;
@@ -349,6 +364,29 @@ async function executeTool(toolName, args) {
   for (var reqIdx = 0; reqIdx < requiredProps.length; reqIdx++) {
     if (args[requiredProps[reqIdx]] === undefined || args[requiredProps[reqIdx]] === null || args[requiredProps[reqIdx]] === "") {
       throw new Error("Invalid arguments: missing required property '" + requiredProps[reqIdx] + "'");
+    }
+  }
+
+  // Validate declared property types and enum values so malformed arguments
+  // fail locally with a clear error instead of reaching the upstream API.
+  for (var valKey in schemaProps) {
+    if (!Object.prototype.hasOwnProperty.call(schemaProps, valKey)) continue;
+    var valSchema = schemaProps[valKey] || {};
+    if (args[valKey] === undefined || args[valKey] === null) continue;
+    if (valSchema.type) {
+      var allowedTypes = Array.isArray(valSchema.type) ? valSchema.type : [valSchema.type];
+      var actualType = Array.isArray(args[valKey]) ? "array" : typeof args[valKey];
+      var typeMatch = allowedTypes.some(function (t) {
+        if (t === actualType) return true;
+        if (t === "integer" && actualType === "number" && Number.isInteger(args[valKey])) return true;
+        return false;
+      });
+      if (!typeMatch) {
+        throw new Error("Invalid arguments: property '" + valKey + "' must be of type " + allowedTypes.join(" or ") + " (got " + actualType + ")");
+      }
+    }
+    if (valSchema.enum && valSchema.enum.indexOf(args[valKey]) === -1) {
+      throw new Error("Invalid arguments: property '" + valKey + "' must be one of: " + valSchema.enum.join(", "));
     }
   }
 
