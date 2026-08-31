@@ -148,7 +148,7 @@ function fetchUrl(url, options) {
     }
 
     var req = lib.request(reqOpts, function(res) {
-      var data = "";
+      var chunks = [];
       var bytes = 0;
       var finished = false;
       var countedBytes = 0;
@@ -185,7 +185,7 @@ function fetchUrl(url, options) {
           res.destroy();
           return;
         }
-        data += chunk;
+        chunks.push(chunk);
       });
       res.on("end", function() {
         finished = true;
@@ -193,7 +193,10 @@ function fetchUrl(url, options) {
         resolve({
           statusCode: res.statusCode,
           headers: res.headers,
-          body: data,
+          // Decode once over the full body: accumulating string chunks can
+          // split a multi-byte UTF-8 sequence across chunk boundaries and
+          // corrupt it.
+          body: Buffer.concat(chunks).toString("utf8"),
           // Redirects are deliberately not followed. Surface the target URL
           // for 3xx responses so callers (e.g. wayback_save snapshots) can
           // use it instead of receiving an empty body.
@@ -305,11 +308,20 @@ function getIpBlockList() {
   ipBlockList.addSubnet("198.51.100.0", 24, "ipv4");
   ipBlockList.addSubnet("203.0.113.0", 24, "ipv4");
   ipBlockList.addSubnet("224.0.0.0", 3, "ipv4"); // multicast + reserved
+  ipBlockList.addSubnet("192.88.99.0", 24, "ipv4"); // 6to4 relay anycast (deprecated)
   ipBlockList.addSubnet("::", 128, "ipv6");
   ipBlockList.addSubnet("::1", 128, "ipv6");
   ipBlockList.addSubnet("64:ff9b::", 96, "ipv6");
   ipBlockList.addSubnet("2001:db8::", 32, "ipv6");
+  ipBlockList.addSubnet("2001::", 32, "ipv6"); // Teredo
+  ipBlockList.addSubnet("2001:2::", 48, "ipv6"); // benchmarking
   ipBlockList.addSubnet("2002::", 16, "ipv6");
+  // IPv4-compatible addresses (::x, including the hex loopback form ::7f00:1).
+  // NOTE: ::ffff:0:0/96 must NOT be added — BlockList's v4-mapped
+  // normalization makes it equivalent to 0.0.0.0/0 and it would reject all
+  // IPv4 traffic. v4-mapped addresses are normalized to plain IPv4 in
+  // isPublicIp() before any list check.
+  ipBlockList.addSubnet("::", 96, "ipv6");
   ipBlockList.addSubnet("fc00::", 7, "ipv6");
   ipBlockList.addSubnet("fe80::", 10, "ipv6");
   ipBlockList.addSubnet("ff00::", 8, "ipv6");
@@ -328,7 +340,7 @@ function isPublicIp(ip) {
 
 // Redact sensitive fields from tool args before returning them in the response
 // payload. Prevents accidental API key leakage through the `query: args` field.
-var SENSITIVE_ARG_KEYS = /^(api[_-]?key|apikey|token|secret|password|hibp[_-]?key|shodan[_-]?key|vt[_-]?api[_-]?key|hunter[_-]?key|etherscan[_-]?key|securitytrails[_-]?key)$/i;
+var SENSITIVE_ARG_KEYS = /^(x-api[\s_-]*key|api[\s_-]*key|apikey|access[_-]?token|session[_-]?id|sig|client[_-]?secret|authorization|bearer|token|secret|password|hibp[_-]?key|shodan[_-]?key|vt[_-]?api[_-]?key|hunter[_-]?key|etherscan[_-]?key|securitytrails[_-]?key)$/i;
 
 var MAX_REDACT_DEPTH = 6;
 
@@ -385,6 +397,12 @@ async function executeTool(toolName, args) {
     throw new Error("Unknown tool: " + toolName);
   }
 
+  // `arguments` must be a plain object before the schema loops below touch
+  // it; anything else (string, number, array) fails with a clear local error.
+  if (!args || typeof args !== "object" || Array.isArray(args)) {
+    throw new Error("Invalid arguments: expected an object");
+  }
+
   // Enforce the registry's input_schema before building any URL: apply
   // property defaults and fail fast on missing required arguments with a
   // clear local error.
@@ -392,7 +410,7 @@ async function executeTool(toolName, args) {
   var schemaProps = schema.properties || {};
   for (var defKey in schemaProps) {
     if (Object.prototype.hasOwnProperty.call(schemaProps, defKey) &&
-        args[defKey] === undefined && schemaProps[defKey] && schemaProps[defKey].default !== undefined) {
+        (args[defKey] === undefined || args[defKey] === null) && schemaProps[defKey] && schemaProps[defKey].default !== undefined) {
       args[defKey] = schemaProps[defKey].default;
     }
   }
@@ -423,6 +441,17 @@ async function executeTool(toolName, args) {
     }
     if (valSchema.enum && valSchema.enum.indexOf(args[valKey]) === -1) {
       throw new Error("Invalid arguments: property '" + valKey + "' must be one of: " + valSchema.enum.join(", "));
+    }
+  }
+
+  // Reject properties the schema does not declare. They used to be ignored
+  // silently, which hid caller mistakes (e.g. an api_key sent to a tool that
+  // never reads it) and let caller-controlled keys reach the URL-building
+  // loops below.
+  for (var argKey in args) {
+    if (Object.prototype.hasOwnProperty.call(args, argKey) &&
+        !Object.prototype.hasOwnProperty.call(schemaProps, argKey)) {
+      throw new Error("Invalid arguments: unknown property '" + argKey + "'");
     }
   }
 
@@ -462,10 +491,14 @@ async function executeTool(toolName, args) {
     throw new Error("Tool " + toolName + " has no endpoint defined");
   }
 
-  // Replace {placeholder} tokens in endpoint with args
+  // Replace {placeholder} tokens in the endpoint with argument values. The
+  // loop walks the schema's declared properties, not the caller's keys, so
+  // caller-controlled argument names are never compiled into RegExps. Null
+  // values are treated as absent (defaults were already applied above).
   var key;
-  for (key in args) {
-    if (Object.prototype.hasOwnProperty.call(args, key)) {
+  for (key in schemaProps) {
+    if (Object.prototype.hasOwnProperty.call(schemaProps, key) &&
+        args[key] !== undefined && args[key] !== null) {
       endpoint = endpoint.replace(new RegExp("\\{" + key + "\\}", "g"), encodeURIComponent(args[key]));
     }
   }
@@ -567,7 +600,7 @@ async function executeTool(toolName, args) {
   var responseObject = {
     tool: toolName,
     query: redactSensitiveArgs(args),
-    endpoint: endpoint.replace(/([?&])(api[_-]?key|apikey|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED"),
+    endpoint: endpoint.replace(/([?&])(x-api[\s_-]*key|api[\s_-]*key|apikey|access[_-]?token|session[_-]?id|sig|client[_-]?secret|authorization|bearer|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED"),
     status: response.statusCode,
     timestamp: new Date().toISOString(),
     result: parsed,
@@ -578,7 +611,7 @@ async function executeTool(toolName, args) {
   // query-parameter redaction used for endpoints, since some APIs echo the
   // key back inside the Location header.
   if (response.location) {
-    responseObject.redirect = response.location.replace(/([?&])(api[_-]?key|apikey|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED");
+    responseObject.redirect = response.location.replace(/([?&])(x-api[\s_-]*key|api[\s_-]*key|apikey|access[_-]?token|session[_-]?id|sig|client[_-]?secret|authorization|bearer|key|token|secret|password)=[^&\s]+/gi, "$1$2=REDACTED");
   }
 
   // Surface rate-limit state from response headers so agents and harnesses
@@ -746,6 +779,46 @@ function releaseCallSlot() {
 var buffer = "";
 
 process.stdin.setEncoding("utf-8");
+
+// Parse and dispatch one complete stdin line. Per JSON-RPC 2.0, a line that
+// is not valid JSON is answered with -32700, and a structurally invalid
+// message (not an object, a batch array, a request with a null id, or an
+// object with an id but no method) with -32600. Both carry id:null because
+// the request id is unknown or unusable. Notifications (no id) never
+// receive a response.
+function handleLine(line) {
+  var msg;
+  try {
+    msg = JSON.parse(line);
+  } catch (err) {
+    process.stderr.write("[osint-agent-skills] JSON parse error: " + err.message + "\n");
+    error(null, -32700, "Parse error: " + err.message);
+    return;
+  }
+  // JSON-RPC messages are objects. Anything else (null, a bare number,
+  // string, boolean, or a batch array) cannot carry a method and id.
+  if (msg === null || typeof msg !== "object" || Array.isArray(msg)) {
+    process.stderr.write("[osint-agent-skills] Ignoring non-object message\n");
+    error(null, -32600, "Invalid Request: expected a single JSON-RPC message object");
+    return;
+  }
+  // A request with a null id is malformed: ids must be strings or numbers
+  // (notifications carry no id at all). Answer instead of staying silent.
+  if (msg.id === null) {
+    error(null, -32600, "Invalid Request: id must be a string or number, not null");
+    return;
+  }
+  // An object with an id but no method cannot be routed to a handler.
+  if (msg.method === undefined && msg.id !== undefined) {
+    error(msg.id, -32600, "Invalid Request: missing method");
+    return;
+  }
+  handleMessage(msg).catch(function(err) {
+    process.stderr.write("[osint-agent-skills] Error handling message: " + err.message + "\n");
+    if (msg.id !== undefined && msg.id !== null) error(msg.id, -32603, err.message);
+  });
+}
+
 process.stdin.on("data", function(chunk) {
   buffer += chunk;
   var newlineIdx;
@@ -753,26 +826,13 @@ process.stdin.on("data", function(chunk) {
     var line = buffer.slice(0, newlineIdx).trim();
     buffer = buffer.slice(newlineIdx + 1);
     if (!line) continue;
-    try {
-      var msg = JSON.parse(line);
-      // JSON-RPC messages are objects. Anything else (null, a bare number or
-      // string) cannot carry a method or id, so log it and move on instead
-      // of crashing on a property read.
-      if (msg === null || typeof msg !== "object") {
-        process.stderr.write("[osint-agent-skills] Ignoring non-object message\n");
-        continue;
-      }
-      handleMessage(msg).catch(function(err) {
-        process.stderr.write("[osint-agent-skills] Error handling message: " + err.message + "\n");
-        if (msg.id !== undefined && msg.id !== null) error(msg.id, -32603, err.message);
-      });
-    } catch (err) {
-      process.stderr.write("[osint-agent-skills] JSON parse error: " + err.message + "\n");
-    }
+    handleLine(line);
   }
 });
 
 process.stdin.on("end", function() {
+  // A trailing line without a final newline is still a complete message.
+  if (buffer.trim()) handleLine(buffer.trim());
   // Drain in-flight tool calls before exiting so responses are not lost.
   // Hard deadline: a stalled response can outlive the 30s timeout, so
   // never hang forever on drain.
