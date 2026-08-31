@@ -11,6 +11,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 _Nothing yet._
 
 
+## [1.7.0] — 2026-09-01
+
+### Changed
+
+- **Strict argument validation** — properties the tool schema does not declare are now
+  rejected with `unknown property '<name>'` instead of being silently ignored. This hides
+  caller mistakes no longer: an `api_key` sent to a tool that never reads it (e.g.
+  `shodan_internetdb`) now fails fast with a clear error. Null argument values are treated
+  as absent, so an explicit `null` falls back to the schema default instead of being sent
+  as the literal string `"null"` in a URL.
+- **JSON-RPC protocol errors** — a stdin line that is not valid JSON is answered with
+  `-32700`, and structurally invalid messages (non-objects, batch arrays, requests with a
+  `null` id, objects with an id but no method) with `-32600`. All of these were previously
+  logged to stderr and dropped. A request with a `null` id is malformed per JSON-RPC 2.0
+  and is no longer executed silently. A trailing line without a final newline is now
+  processed as a complete message on stdin end instead of being discarded.
+
+### Fixed
+
+- **UTF-8 response decoding** — HTTP bodies are accumulated as Buffers and decoded once,
+  instead of concatenated as per-chunk strings. Multi-byte sequences split across chunk
+  boundaries no longer corrupt into U+FFFD, which also made `output_hash` non-deterministic.
+- **Redaction widened** — the sensitive-key pattern for echoed `query` objects now covers
+  `x-api-key`, `access_token`, `session_id`, `sig`, `client_secret`, `authorization`,
+  `bearer` and spaced/doubled `api key` spellings; the endpoint and redirect echoes now
+  redact the same key-shaped query parameters (`access_token=`, `sig=`, `session_id=`, …)
+  instead of only `api_key`-style names.
+- **Endpoint placeholders walk the schema** — `{placeholder}` substitution iterates the
+  schema's declared properties, so caller-controlled argument names are never compiled into
+  RegExps (a `".*"` or `"x("` key used to reach `new RegExp` and could rewrite the whole
+  path or throw a `SyntaxError`).
+
+### Security
+
+- **Blocked-IP policy widened** — the connection-time blocklist now also rejects the
+  deprecated 6to4 relay anycast (`192.88.99.0/24`), Teredo (`2001::/32`), benchmarking
+  (`2001:2::/48`) and IPv4-compatible addresses (`::/96`, which covers the hex loopback
+  form `::7f00:1`). Note for future edits: `::ffff:0:0/96` must never be added — Node's
+  BlockList treats it as `0.0.0.0/0` and it would reject all IPv4 traffic.
+
+### Added
+
+- **Offline test suite** — `tests/server.test.js` (33 tests, zero dependencies) now covers
+  JSON-RPC protocol errors, argument validation, key redaction, rate-limit header
+  surfacing, multi-byte chunk decoding, redirect/endpoint echoes, oversized responses,
+  API key precedence, DNS-based host validation, and the concurrency/queue caps, using an
+  in-process http/dns stub (`tests/helpers/`). Run with `npm test`.
+
+
+## [1.6.0] — 2026-08-31
+
+Published to npm only (`@frangelbarrera/osint-agent-skills@1.6.0`); documents the
+hardening round already on `main` between 1.5.0 and this release.
+
+### Added
+
+- **Rate-limit visibility** — `x-ratelimit-remaining`, `x-ratelimit-reset` and `retry-after`
+  response headers are surfaced as a `rate_limit` object on every tool response, so agents
+  can back off before crossing a limit.
+- **HTTP errors are tool errors** — 401/403/429/5xx responses set `isError: true` (404 stays
+  a normal result for OSINT semantics) instead of returning error bodies as successful
+  results.
+- **Concurrency and response caps** — at most 8 tool calls run concurrently (FIFO queue,
+  excess calls beyond 64 queued are refused with `Server busy`); responses are capped at
+  5 MB each and 32 MB in flight; truncated responses settle with an error instead of hanging.
+- **Redirects surfaced, not followed** — 3xx responses include a `redirect` field with the
+  target URL, with key-shaped query parameters redacted.
+- **Registry-driven validation** — required/type/enum checks and schema defaults enforced
+  before any URL is built; `arguments` must be an object.
+- **Test suite introduced** — `npm test` runs the offline protocol suite in `tests/`.
+
+
 ## [1.5.0] — 2026-07-27
 
 ### Added

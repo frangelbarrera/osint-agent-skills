@@ -6,12 +6,12 @@
     "url": "https://github.com/frangelbarrera/osint-agent-skills",
     "source": "github"
   },
-  "version": "1.5.0",
+  "version": "1.7.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@frangelbarrera/osint-agent-skills",
-      "version": "1.5.0",
+      "version": "1.7.0",
       "transport": {
         "type": "stdio"
       }
