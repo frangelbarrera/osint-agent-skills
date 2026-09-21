@@ -3,7 +3,7 @@
 > A knowledge base that turns any autonomous AI agent into a senior OSINT analyst.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: v1.6.0](https://img.shields.io/badge/Status-v1.6.0-blue.svg )](CHANGELOG.md)
+[![Status: v1.6.0](https://img.shields.io/badge/Status-v1.6.0-blue.svg)](CHANGELOG.md)
 [![Stars](https://img.shields.io/github/stars/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/commits)
 [![Issues](https://img.shields.io/github/issues/frangelbarrera/osint-agent-skills?style=flat-square)](https://github.com/frangelbarrera/osint-agent-skills/issues)
@@ -203,7 +203,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md). Pull requests that add new pivot playb
 
 Security issues should be reported privately according to the project's [security policy](SECURITY.md). Please do not open a public issue for a suspected vulnerability.
 
-The latest published npm release is [`1.6.0`](https://www.npmjs.com/package/@frangelbarrera/osint-agent-skills/v/1.6.0 ). Versions `1.4.1` and `1.5.0` are deprecated on npm because they predate security and reliability fixes included in `1.6.0`.
+The latest published npm release is [`1.6.0`](https://www.npmjs.com/package/@frangelbarrera/osint-agent-skills/v/1.6.0). Versions `1.4.1` and `1.5.0` are deprecated on npm because they predate security and reliability fixes included in `1.6.0`.
 
 The project does not claim that every hardening change constitutes a separately exploitable vulnerability. Security advisories will be published only when a specific issue, affected version range, impact, and patched version have been technically confirmed.
 
