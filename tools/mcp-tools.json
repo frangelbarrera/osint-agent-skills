@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schemas/mcp-server.schema.json",
   "name": "osint-agent-skills-tools",
-  "version": "1.7.0",
+  "version": "1.6.0",
   "description": "MCP-format tool catalog for OSINT Agent Skills. These tools can be loaded directly into Claude Code, Cursor, or any MCP-compatible agent. Each tool is defined in the Model Context Protocol tool schema with input_schema for structured invocation.",
   "tools": [
     {
