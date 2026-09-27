@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- Document MetadataRemover.ai Metadata Viewer as an informational browser-based reference
+  (closes #3).
 
 
 ## [1.7.0] — 2026-09-01
