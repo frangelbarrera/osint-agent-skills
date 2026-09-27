@@ -88,3 +88,14 @@ For a complete inventory grouped by category, see the tags in each YAML file. Th
 - **Code search**: GitHub REST API, gitrob.
 - **Social media (free APIs)**: Mastodon, GitHub user lookup.
 - **CLI tools**: sherlock, holehe, maigret, theHarvester, amass, subfinder, httpx, nuclei, ExifTool, Metagoofil, Photon, twint, instaloader, recon-ng, SpiderFoot, Maltego.
+
+## Browser-based reference tools
+
+These are informational references, not callable API or CLI catalog entries:
+
+- **[MetadataRemover.ai Metadata Viewer](https://metadataremover.ai/metadata-viewer)** — Reviews
+  supported metadata in JPG/JPEG, PNG, and WebP images; exports JSON, CSV, or PDF reports.
+  The provider states that files and extracted values stay in the browser; this claim has not
+  been independently audited. An empty result does not show that an image is not AI-generated,
+  and supported C2PA/JUMBF markers are not signature-validated. The issue submitter discloses
+  maintaining the service ([issue #3](https://github.com/frangelbarrera/osint-agent-skills/issues/3)).
