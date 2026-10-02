@@ -210,3 +210,7 @@ The project does not claim that every hardening change constitutes a separately 
 ## Changelog
 
 See [`CHANGELOG.md`](CHANGELOG.md).
+
+## Agent security model
+
+See [docs/agent-security-model.md](docs/agent-security-model.md).
