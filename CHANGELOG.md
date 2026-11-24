@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Document MetadataRemover.ai Metadata Viewer as an informational browser-based reference
   (closes #3).
+- Add a worked example on event dates and confirmation dates in NTSB updates (#6).
 
 
 ## [1.7.0] — 2026-09-01

@@ -23,6 +23,7 @@ Case studies are also useful for **anticipating pivot chains**. The Stuxnet case
 | [`bellingcat-mh17.md`](bellingcat-mh17.md) | MH17 investigation (Bellingcat) | The gold standard of OSINT attribution: social media posts, reverse image search, and geolocation traced a Buk missile system from Russia to the launch site. |
 | [`colonial-pipeline.md`](colonial-pipeline.md) | Colonial Pipeline ransomware (2021) | DarkSide affiliate attribution via leak-site claims, blockchain tracing of the bitcoin ransom, and the FBI's partial recovery of funds. |
 | [`reddit-user-attribution.md`](reddit-user-attribution.md) | Anonymous Reddit account (pedagogical) | A composite, non-real walkthrough showing how posting patterns, vocabulary, and metadata triangulate an anonymous account to a real identity. |
+| [`ntsb-learjet-source-dates.md`](ntsb-learjet-source-dates.md) | Learjet 60 public updates (2026) | Separate event dates and confirmation dates in a preliminary NTSB chronology. |
 
 ## A note on sourcing
 
